@@ -92,8 +92,9 @@ class _CounterDetailsScreenState extends State<CounterDetailsScreen> {
                   }
 
                   // Once the data is available, build the BarChart
-                  return LineChart(
-                    snapshot.data!,
+                  return BarChart(
+                    BarChartData(
+                      barGroups: snapshot.data!,
                       // Configure the rest of your chart styling and data here
                     ),
                   );
