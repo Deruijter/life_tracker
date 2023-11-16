@@ -70,13 +70,12 @@ class TimerTracker extends Tracker {
       occurrences: data['occurrences'] ?? 0, // Default to 0 if occurrences is null
       latestOccurrence: data['latest_occurrence'] != null ? DateTime.tryParse(data['latest_occurrence']) : null,
       endTime: data['end_time'] != null ? DateTime.tryParse(data['end_time']) : null,
-      durationFinished: data['duration_finished'],
+      durationFinished: data['duration_finished'] ?? 0,
     );
   }
 
   bool isRunning(){
-    //return(latestOccurrence != null && endTime == null ? true : false);
-    return(endTime == null ? true : false);
+    return(latestOccurrence != null && endTime == null ? true : false);
   }
 }
 
