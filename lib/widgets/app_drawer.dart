@@ -23,18 +23,18 @@ class AppDrawer extends StatelessWidget {
              },
            ),
            ListTile(
-             title: const Text('Create new counter'),
+             title: const Text('Create new tracker'),
              onTap: () {
               Navigator.pop(context); // Close the drawer
-              Navigator.pushNamed(context, '/createEditCounter');
+              Navigator.pushNamed(context, '/createEditTracker');
              },
            ),
            ListTile(
-             title: const Text('Manage counters'),
+             title: const Text('Manage trackers'),
              onTap: () {
                // Close the drawer
                Navigator.pop(context);
-              Navigator.pushNamed(context, '/manageCounters');
+              Navigator.pushNamed(context, '/manageTrackers');
              },
            ),
            ListTile(

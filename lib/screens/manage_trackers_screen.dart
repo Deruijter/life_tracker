@@ -1,34 +1,34 @@
 import 'package:flutter/material.dart';
-import '../helpers/database_helper.dart';
-import '../counter.dart';
+import '../repositories/tracker_repository.dart';
+import '../entities/tracker.dart';
 import '../widgets/app_drawer.dart';
 
 
- class ManageCountersScreen extends StatefulWidget {
-  const ManageCountersScreen({super.key});
+ class ManageTrackersScreen extends StatefulWidget {
+  const ManageTrackersScreen({super.key});
 
   @override
-  _ManageCountersScreenState createState() => _ManageCountersScreenState();
+  _ManageTrackersScreenState createState() => _ManageTrackersScreenState();
 }
 
 
-class _ManageCountersScreenState extends State<ManageCountersScreen> {
+class _ManageTrackersScreenState extends State<ManageTrackersScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _unitController = TextEditingController();
   
   // This list would actually come from your database.
-  List<Counter> _counters = []; 
+  List<Tracker> _trackers = []; 
     @override
   void initState() {
     super.initState();
-    _loadCounters();
+    _loadTrackers();
   }
 
 
-  _loadCounters() async {
-    List<Counter> countersList = await DatabaseHelper.instance.getCountersWithOccurrences();
+  _loadTrackers() async {
+    List<Tracker> trackersList = await TrackerRepository.instance.getTrackersWithOccurrences();
     setState(() {
-      _counters = countersList;
+      _trackers = trackersList;
     });
   }
 
@@ -36,7 +36,7 @@ class _ManageCountersScreenState extends State<ManageCountersScreen> {
   Widget build(BuildContext context) {
    return Scaffold(
      appBar: AppBar(
-       title: const Text('Manage counters'),
+       title: const Text('Manage Trackers'),
        // The leading widget is on the left side of the app bar
        leading: Builder(
          builder: (BuildContext context) {
@@ -55,9 +55,9 @@ class _ManageCountersScreenState extends State<ManageCountersScreen> {
        children: <Widget>[
          Expanded(
            child: ListView.builder(
-             itemCount: _counters.length,
+             itemCount: _trackers.length,
              itemBuilder: (ctx, index) {
-               final counter = _counters[index];
+               final tracker = _trackers[index];
                return Card( // Wrap each item in a Card for better visual structure.
                  margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
                  child: Padding(
@@ -65,19 +65,19 @@ class _ManageCountersScreenState extends State<ManageCountersScreen> {
                    child: Row(
                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                      children: [
-                       // Left side: Counter name, occurrences, and unit.
+                       // Left side: Tracker name, occurrences, and unit.
                        Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
                            Text(
-                             counter.name,
+                             tracker.name,
                              style: const TextStyle(
                                fontSize: 18.0,
                                fontWeight: FontWeight.bold,
                              ),
                            ),
                            Text(
-                             '${counter.occurrences} ${counter.unit}',
+                             '${tracker.occurrences} ${tracker.unit}',
                              style: TextStyle(
                                fontSize: 16.0,
                                color: Colors.grey[600],
@@ -91,7 +91,8 @@ class _ManageCountersScreenState extends State<ManageCountersScreen> {
                            IconButton(
                              icon: const Icon(Icons.settings),
                              onPressed: () {
-                              Navigator.pushNamed(context, '/createEditCounter', arguments: {'initialCounter': counter});
+                              print(tracker.type);
+                              Navigator.pushNamed(context, '/createEditTracker', arguments: {'initialTracker': tracker});
                              }
                            ),
                          ],

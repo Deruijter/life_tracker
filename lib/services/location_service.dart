@@ -3,24 +3,27 @@ import 'package:flutter/material.dart';
 import 'package:location/location.dart';
 import 'dart:io' show Platform;
 
-class LocationService2 extends ChangeNotifier {
-  Location location = Location();
-  LocationData? currentLocation;
-  
-  StreamSubscription<LocationData>? _locationStreamSubscription;
+class LocationService extends ChangeNotifier {
+  static final LocationService _instance = LocationService._internal();
 
-  LocationService2() {
-    // If you're on Linux, set a mocked location.
+  factory LocationService() => _instance;
+
+  LocationService._internal() {
+    // Your existing constructor logic
     if (Platform.isLinux) {
       currentLocation = LocationData.fromMap({
         'latitude': 67.89, // Mocked latitude
         'longitude': 123.45, // Mocked longitude
       });
-      // You don't need to listen for changes because this is a mock.
     } else {
       startListening();
     }
   }
+
+  Location location = Location();
+  LocationData? currentLocation;
+  
+  StreamSubscription<LocationData>? _locationStreamSubscription;
 
   void startListening() {
     _locationStreamSubscription = location.onLocationChanged.listen((LocationData newLocation) {

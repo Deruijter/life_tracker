@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:life_tracker/screens/counter_details_screen.dart';
+import 'package:life_tracker/screens/tracker_details_screen.dart';
 import 'screens/overview_screen.dart';
-import 'screens/create_edit_counter_screen.dart';
-import 'screens/manage_counters_screen.dart';
-import 'services/location_service2.dart';
+import 'screens/create_edit_tracker_screen.dart';
+import 'screens/manage_trackers_screen.dart';
+import 'services/location_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:window_manager/window_manager.dart';
 import 'dart:io' show Platform;
 
 void main() {
@@ -16,6 +17,10 @@ void main() {
   }
 
   runApp(const MyApp());
+
+  if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+    windowManager.setSize(Size(1080/2.5, 1920/2.5));
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -30,7 +35,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => LocationService2(),
+      create: (context) => LocationService(),
       child: MaterialApp(
         title: 'Statistics Tracker',
         theme: ThemeData(
@@ -41,22 +46,22 @@ class _MyAppState extends State<MyApp> {
           switch (settings.name) {
             case '/overview':
               return MaterialPageRoute(builder: (context) => OverviewScreen());
-            case '/createEditCounter':
+            case '/createEditTracker':
               // Extract the arguments from the settings object
               final args = settings.arguments as Map<String, dynamic>?;
               return MaterialPageRoute(
-                builder: (context) => CreateEditCounterScreen(
-                  initialCounter: args?['initialCounter'], // Pass the argument to the screen
+                builder: (context) => CreateEditTrackerScreen(
+                  initialTracker: args?['initialTracker'], // Pass the argument to the screen
                 ),
               );
-            case '/manageCounters':
-              return MaterialPageRoute(builder: (context) => ManageCountersScreen());
-            case '/counterDetails':
+            case '/manageTrackers':
+              return MaterialPageRoute(builder: (context) => ManageTrackersScreen());
+            case '/trackerDetails':
               // Extract the arguments from the settings object
               final args = settings.arguments as Map<String, dynamic>?;
               return MaterialPageRoute(
-                builder: (context) => CounterDetailsScreen(
-                  counterDetails: args?['counterDetails'], // Pass the argument to the screen
+                builder: (context) => TrackerDetailsScreen(
+                  trackerDetails: args?['trackerDetails'], // Pass the argument to the screen
                 ),
               );
             // Add more routes as needed
@@ -75,6 +80,7 @@ class MyHomePage extends StatefulWidget {
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
+  
 }
 
 class _MyHomePageState extends State<MyHomePage> {

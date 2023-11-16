@@ -1,4 +1,4 @@
-class CounterDetails {
+class TrackerDetails {
   final int id;
   final String name;
   final String unit;
@@ -9,7 +9,7 @@ class CounterDetails {
   final int occurrencesThisYear;
   final int occurrencesTotal;
 
-  CounterDetails({required this.id, 
+  TrackerDetails({required this.id, 
   required this.name, 
   required this.unit, 
   this.occurrencesToday = 0,
@@ -19,10 +19,10 @@ class CounterDetails {
   this.occurrencesThisYear = 0,
   this.occurrencesTotal = 0,});
 
-  // Factory constructor to create a Counter from a Map
-  factory CounterDetails.fromMap(Map<String, dynamic> data) {
-    return CounterDetails(
-      id: data['counter_id'],
+  // Factory constructor to create a Tracker from a Map
+  factory TrackerDetails.fromMap(Map<String, dynamic> data) {
+    return TrackerDetails(
+      id: data['tracker_id'],
       name: data['name'],
       unit: data['unit'],
       occurrencesToday: data['occurrences_today'] ?? 0, // Default to 0 if occurrences is null
