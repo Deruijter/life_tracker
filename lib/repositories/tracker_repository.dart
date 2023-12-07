@@ -442,7 +442,11 @@ class TrackerRepository {
             final result = await db.rawQuery('''
               SELECT t.tracker_id, t.name, t.unit,t.type,
                 COUNT(CASE WHEN o.datetime >= ? AND o.datetime <= ? THEN 1 ELSE NULL END) AS occurrences,
-                MAX(o.datetime) as latestOccurrence
+                (
+                  SELECT MAX(o2.datetime)
+                  FROM occurrences o2 
+                  WHERE o2.tracker_id = t.tracker_id 
+                ) AS latest_occurrence
               FROM trackers t
               LEFT JOIN occurrences o ON t.tracker_id = o.tracker_id
               WHERE t.type == 'counter'
@@ -459,15 +463,19 @@ class TrackerRepository {
             final result = await db.rawQuery('''
               SELECT t.tracker_id, t.name, t.unit,t.type,
                 COUNT(CASE WHEN o.datetime >= ? AND o.datetime <= ? THEN 1 ELSE NULL END) AS occurrences,
-                MAX(o.datetime) as latest_occurrence,
+                (
+                  SELECT MAX(o2.datetime)
+                  FROM occurrences o2 
+                  WHERE o2.tracker_id = t.tracker_id 
+                ) AS latest_occurrence,
                 (
                   SELECT ot.end_time 
                   FROM occurrences_timer ot
                   WHERE ot.occurrence_id = (
                     SELECT occurrence_id 
-                    FROM occurrences o2 
-                    WHERE o2.tracker_id = t.tracker_id 
-                    ORDER BY o2.datetime DESC 
+                    FROM occurrences o3 
+                    WHERE o3.tracker_id = t.tracker_id 
+                    ORDER BY o3.datetime DESC 
                     LIMIT 1
                   )
                 ) AS end_time,
@@ -518,7 +526,11 @@ class TrackerRepository {
             final result = await db.rawQuery('''
               SELECT t.tracker_id, t.name, t.unit,t.type,
                 COUNT(CASE WHEN o.datetime >= ? AND o.datetime <= ? THEN 1 ELSE NULL END) AS occurrences,
-                MAX(o.datetime) as latestOccurrence,
+                (
+                  SELECT MAX(o2.datetime)
+                  FROM occurrences o2 
+                  WHERE o2.tracker_id = t.tracker_id 
+                ) AS latest_occurrence,
                 (
                   SELECT ot.text 
                   FROM occurrences_text ot
@@ -546,7 +558,13 @@ class TrackerRepository {
             final result = await db.rawQuery('''
               SELECT t.tracker_id, t.name, t.unit,t.type,
                 COUNT(CASE WHEN o.datetime >= ? AND o.datetime <= ? THEN 1 ELSE NULL END) AS occurrences,
-                MAX(o.datetime) as latestOccurrence,
+                (
+                  SELECT 
+                    CASE WHEN COUNT(o2.occurrence_id) = 0
+                      THEN NULL ELSE MAX(o2.datetime) END
+                  FROM occurrences o2 
+                  WHERE o2.tracker_id = t.tracker_id 
+                ) AS latest_occurrence,
                 (
                   SELECT om.value 
                   FROM occurrences_monitor om

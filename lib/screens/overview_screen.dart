@@ -243,6 +243,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                               if(!tracker.isRunning())
                                 Text(
                                   '${tracker.durationFinished.round()} min.',
+                                  //'Last start: ${tracker.latestOccurrence} _ ${tracker.endTime}',
                                   style: TextStyle(
                                     fontSize: 16.0,
                                     color: Colors.grey[600],

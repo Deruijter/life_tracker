@@ -16,7 +16,7 @@ class Tracker {
       unit: data['unit'],
       type: data['type'].toString().trackerType,
       occurrences: data['occurrences'] ?? 0, // Default to 0 if occurrences is null
-      latestOccurrence: data['latest_occurrence'],
+      latestOccurrence: data['latest_occurrence'] != null ? DateTime.tryParse(data['latest_occurrence']) : null,
     );
   }
 }
@@ -39,7 +39,7 @@ class CounterTracker extends Tracker {
       unit: data['unit'],
       type: data['type'].toString().trackerType,
       occurrences: data['occurrences'] ?? 0, // Default to 0 if occurrences is null
-      latestOccurrence: data['latest_occurrence'],
+      latestOccurrence: data['latest_occurrence'] != null ? DateTime.tryParse(data['latest_occurrence']) : null,
     );
   }
 }
@@ -100,7 +100,7 @@ class TextTracker extends Tracker {
       unit: data['unit'],
       type: data['type'].toString().trackerType,
       occurrences: data['occurrences'] ?? 0, // Default to 0 if occurrences is null
-      latestOccurrence: data['latest_occurrence'],
+      latestOccurrence: data['latest_occurrence'] != null ? DateTime.tryParse(data['latest_occurrence']) : null,
       text: data['text'],
     );
   }
@@ -127,7 +127,7 @@ class MonitorTracker extends Tracker {
       unit: data['unit'],
       type: data['type'].toString().trackerType,
       occurrences: data['occurrences'] ?? 0, // Default to 0 if occurrences is null
-      latestOccurrence: data['latest_occurrence'],
+      latestOccurrence: data['latest_occurrence'] != null ? DateTime.tryParse(data['latest_occurrence']) : null,
       value: data['value'],
     );
   }
