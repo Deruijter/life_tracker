@@ -4,6 +4,9 @@ import 'package:path/path.dart';
 import '../entities/tracker.dart';
 import 'package:intl/intl.dart';
 import '../helpers/date_helper.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:convert';
 
 class TrackerRepository {
   static final TrackerRepository instance = TrackerRepository._init();
@@ -676,7 +679,6 @@ class TrackerRepository {
     }
   }
 
-
   Future<List<Map<String, dynamic>>> getOccurrencesForTrackerByDate(
       int trackerId, String startDate, String endDate) async {
     final db = await instance.database;
@@ -692,6 +694,7 @@ class TrackerRepository {
     
     return result;
   }
+
   Future<void> printAllTrackers() async {
     final db = await instance.database;
     List<Map<String, dynamic>> allRows = await db.query('trackers');
@@ -710,4 +713,72 @@ class TrackerRepository {
       whereArgs: [id],
     );
   }
+
+  Future<String> exportDatabaseToJSON() async {
+    // Get the database path
+    var databasesPath = await getDatabasesPath();
+    String dbPath = join(databasesPath, 'my_database.db');
+
+    // Get the export file path
+    Directory? directory;
+    if (Platform.isAndroid || Platform.isIOS) {
+      directory = await getExternalStorageDirectory();
+    } else {  // any other OS / test environments
+      directory = await getApplicationDocumentsDirectory();
+    }
+    if (directory == null) {
+      print('External storage is not available');
+      return "Error";
+    }
+
+    String exportPath = join(directory.path, 'database_backup.json');
+
+    final db = await instance.database;
+
+    // Export the JSON data
+    List<Map<String, dynamic>> tables = await db.rawQuery('SELECT name FROM sqlite_master WHERE type="table"');
+    Map<String, dynamic> jsonMap = {};
+    for (var table in tables) {
+      String tableName = table['name'];
+      List<Map<String, dynamic>> rows = await db.rawQuery('SELECT * FROM $tableName');
+      jsonMap[tableName] = rows;
+    }
+
+    String json = jsonEncode(jsonMap);
+
+    // Write to file
+    File exportFile = File(exportPath);
+    await exportFile.writeAsString(json);
+
+    return exportPath;
+  }
+  
+  Future<void> replaceDatabaseFromJSON(String jsonPath) async {
+
+    final db = await instance.database;
+
+    // Read the JSON file
+    File jsonFile = File(jsonPath);
+    String jsonString = await jsonFile.readAsString();
+    Map<String, dynamic> jsonData = jsonDecode(jsonString);
+
+    // Begin a transaction
+    await db.transaction((txn) async {
+      // Clear existing data
+      List<Map<String, dynamic>> tables = await txn.rawQuery('SELECT name FROM sqlite_master WHERE type="table"');
+      for (var table in tables) {
+        String tableName = table['name'];
+        await txn.delete(tableName);
+      }
+
+      // Insert new data from JSON
+      for (var tableName in jsonData.keys) {
+        List<dynamic> rows = jsonData[tableName];
+        for (var row in rows) {
+          await txn.insert(tableName, Map<String, dynamic>.from(row));
+        }
+      }
+    });
+  }
+
 }

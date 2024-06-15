@@ -46,6 +46,15 @@ class AppDrawer extends StatelessWidget {
              },
            ),
            ListTile(
+             title: const Text('Extra options'),
+             onTap: () {
+               // Close the drawer
+               Navigator.pop(context);
+              Navigator.pushNamed(context, '/extraOptions');
+               // Navigate to manage overviews screen
+             },
+           ),
+           ListTile(
              title: const Text('About'),
              onTap: () {
                // Close the drawer

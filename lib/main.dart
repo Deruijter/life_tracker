@@ -3,6 +3,7 @@ import 'package:life_tracker/screens/tracker_details_screen.dart';
 import 'screens/overview_screen.dart';
 import 'screens/create_edit_tracker_screen.dart';
 import 'screens/manage_trackers_screen.dart';
+import 'screens/extra_options_screen.dart';
 import 'services/location_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -64,6 +65,8 @@ class _MyAppState extends State<MyApp> {
                   trackerDetails: args?['trackerDetails'], // Pass the argument to the screen
                 ),
               );
+            case '/extraOptions':
+              return MaterialPageRoute(builder: (context) => ExtraOptionsScreen());
             // Add more routes as needed
             default:
               // If there is no route defined for settings.name, return a route to a 404 screen or similar
