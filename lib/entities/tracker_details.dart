@@ -1,7 +1,10 @@
+import '../repositories/tracker_repository.dart';
+
 class TrackerDetails {
   final int id;
   final String name;
   final String unit;
+  final TrackerType type;
   final int occurrencesToday;
   final int occurrencesYesterday;
   final int occurrencesThisWeek;
@@ -12,6 +15,7 @@ class TrackerDetails {
   TrackerDetails({required this.id, 
   required this.name, 
   required this.unit, 
+  required this.type,
   this.occurrencesToday = 0,
   this.occurrencesYesterday = 0,
   this.occurrencesThisWeek = 0,
@@ -25,6 +29,7 @@ class TrackerDetails {
       id: data['tracker_id'],
       name: data['name'],
       unit: data['unit'],
+      type: data['type'].toString().trackerType,
       occurrencesToday: data['occurrences_today'] ?? 0, // Default to 0 if occurrences is null
       occurrencesYesterday: data['occurrences_yesterday'] ?? 0, // Default to 0 if occurrences is null
       occurrencesThisWeek: data['occurrences_this_week'] ?? 0, // Default to 0 if occurrences is null

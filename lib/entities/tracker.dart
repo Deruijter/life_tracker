@@ -1,3 +1,5 @@
+import '../repositories/tracker_repository.dart';
+
 class Tracker {
   final int id;
   final String name;
@@ -133,36 +135,3 @@ class MonitorTracker extends Tracker {
   }
 }
 
-enum TrackerType { counter, timer, text, monitor }
-
-extension TrackerTypeString on String {
-  TrackerType get trackerType {
-    switch (this) {
-      case 'counter':
-        return TrackerType.counter;
-      case 'timer':
-        return TrackerType.timer;
-      case 'text':
-        return TrackerType.text;
-      case 'monitor':
-        return TrackerType.monitor;
-      default:
-        return TrackerType.counter;
-    }
-  }
-}
-
-extension TrackerTypeExtension on TrackerType {
-  String get string {
-    switch (this) {
-      case TrackerType.counter:
-        return 'counter';
-      case TrackerType.timer:
-        return 'timer';
-      case TrackerType.text:
-        return 'text';
-      case TrackerType.monitor:
-        return 'monitor';
-    }
-  }
-}

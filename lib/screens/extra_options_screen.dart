@@ -83,6 +83,7 @@ class _ExtraOptionsScreenState extends State<ExtraOptionsScreen> {
       drawer: const AppDrawer(),
       body: Column(
         children: <Widget>[
+          const Divider(height: 32),
           ElevatedButton(
             onPressed: () async {
               String result = await _exportDatabaseToJSON();
@@ -105,6 +106,7 @@ class _ExtraOptionsScreenState extends State<ExtraOptionsScreen> {
             },
             child: const Text('Create back-up'),
           ),          
+          const Divider(height: 32),
           ElevatedButton(
             onPressed: () => _importDatabaseFromJSON(context),
             child: const Text('Import Database'),

@@ -56,15 +56,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
     // );
     switch(tracker.type){
       case TrackerType.counter:
-        TrackerService().counterIncrement(tracker);
+        TrackerService().addOccurrence(tracker);
       case TrackerType.timer:
-        DateTime latestOccurrence = await TrackerService().timerStart(tracker);
+        DateTime latestOccurrence = await TrackerService().addOccurrenceTimer(tracker);
         if(tracker is TimerTracker){ // Check & cast Tracker to TimerTracker
           tracker.endTime = null;
           tracker.latestOccurrence = latestOccurrence;
         }
       case TrackerType.text:
-        TrackerService().textAdd(tracker, _textFieldController.text);
+        TrackerService().addOccurrenceText(tracker, _textFieldController.text);
         if(tracker is TextTracker){
           tracker.text = _textFieldController.text;
         }
@@ -72,7 +72,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         String valueText = _valueFieldController.text;
         valueText = valueText.replaceAll(',', '.'); // incase the user input commas
         double value = double.parse(valueText);
-        TrackerService().monitorAdd(tracker, value);
+        TrackerService().addOccurrenceMonitor(tracker, value);
         if(tracker is MonitorTracker){
           tracker.value = value;
         }
@@ -146,7 +146,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
       case TrackerType.counter:
         await TrackerRepository.instance.deleteNewestOccurrence(tracker.id);
       case TrackerType.timer:
-        DateTime endTime = await TrackerService().timerEnd(tracker);
+        DateTime endTime = await TrackerService().addOccurrenceTimerEnd(tracker);
         if(tracker is TimerTracker){ // Cast Tracker to TimerTracker
           tracker.endTime = endTime;
           DateTime now = DateTime.now();

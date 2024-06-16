@@ -2,16 +2,50 @@ import 'package:life_tracker/entities/tracker_details.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../entities/tracker.dart';
+import '../entities/occurrence.dart';
 import 'package:intl/intl.dart';
 import '../helpers/date_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:convert';
 
+enum TrackerType { counter, timer, text, monitor }
+extension TrackerTypeString on String {
+  TrackerType get trackerType {
+    switch (this) {
+      case 'counter':
+        return TrackerType.counter;
+      case 'timer':
+        return TrackerType.timer;
+      case 'text':
+        return TrackerType.text;
+      case 'monitor':
+        return TrackerType.monitor;
+      default:
+        return TrackerType.counter;
+    }
+  }
+}
+extension TrackerTypeExtension on TrackerType {
+  String get string {
+    switch (this) {
+      case TrackerType.counter:
+        return 'counter';
+      case TrackerType.timer:
+        return 'timer';
+      case TrackerType.text:
+        return 'text';
+      case TrackerType.monitor:
+        return 'monitor';
+    }
+  }
+}
+
 class TrackerRepository {
   static final TrackerRepository instance = TrackerRepository._init();
   static Database? _database;
   TrackerRepository._init();
+
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -149,32 +183,100 @@ class TrackerRepository {
       [name, unit, type], // Use a list to pass parameters.
     );
 
-    return res; // This usually returns the ID of the inserted row.
+    return res;
   }
 
-  Future addOccurrence(int trackerId, double? latitude, double? longitude) async {
+  Future<int> addOccurrence(int trackerId, DateTime startTime, double? latitude, double? longitude) async {
     final db = await instance.database;
 
-    DateTime now = DateTime.now();
-    String nowFormatted = DateFormat('yyyy-MM-dd kk:mm:ss').format(now);
+    String startTimeFormatted = startTime.toIso8601String();
 
-    //LocationData? currentLocation = await LocationService().getLocation();
+    print('Adding new occurrence: $trackerId; $startTimeFormatted; $latitude; $longitude');
 
-    print('Adding new occurrence: $trackerId; $nowFormatted; $latitude; $longitude');
+    int occurrenceId = 0;
+    // Use a parameterized SQL query to prevent SQL injection.
+    await db.transaction((txn) async {
+      occurrenceId = await txn.rawInsert(
+        'INSERT INTO occurrences (tracker_id, datetime, latitude, longitude) VALUES (?, ?, ?, ?)',
+        [
+          trackerId,
+          startTimeFormatted,
+          latitude, // If currentLocation is null, this evaluates to null
+          longitude, // If currentLocation is null, this evaluates to null
+        ],
+      );
+    });
+
+    return occurrenceId;
+  }
+
+  Future<int> addOccurrenceTimerStart(int occurrenceId) async {
+    // Technically a timer doesn't have a specific "start time", it just uses the occurrence start time as the start time.
+    // However, we still need to add a record in occurrences_timer so the app knows there's a timer in progress
+    final db = await instance.database;
 
     // Use a parameterized SQL query to prevent SQL injection.
-    var res = await db.rawInsert(
-      'INSERT INTO occurrences (tracker_id, datetime, latitude, longitude) VALUES (?, ?, ?, ?)',
-      [
-        trackerId,
-        nowFormatted,
-        latitude, // If currentLocation is null, this evaluates to null
-        longitude, // If currentLocation is null, this evaluates to null
-      ],
-    );
+    await db.transaction((txn) async {
+      await txn.rawInsert(
+        'INSERT INTO occurrences_timer (occurrence_id, end_time) VALUES (?, ?)',
+        [
+          occurrenceId,
+          null
+        ],
+      );
+    });
+    
+    return occurrenceId;
+  }
 
+  Future<DateTime> addOccurrenceTimerEnd(int trackerId, DateTime endTime) async {
+    final db = await instance.database;
 
-    return res; // This usually returns the ID of the inserted row.
+    String endTimeFormatted = endTime.toIso8601String();
+    await db.rawUpdate('''UPDATE occurrences_timer
+      SET end_time = ?
+      WHERE occurrence_id = (
+        SELECT occurrence_id
+        FROM occurrences
+        WHERE tracker_id = ?
+        ORDER BY datetime DESC
+        LIMIT 1
+      );''',[endTimeFormatted, trackerId]);
+    return endTime;
+  }
+
+  Future<int> addOccurrenceText(int occurrenceId, String text) async {
+    final db = await instance.database;
+
+    // Use a parameterized SQL query to prevent SQL injection.
+    await db.transaction((txn) async {
+      await txn.rawInsert(
+        'INSERT INTO occurrences_text (occurrence_id, text) VALUES (?, ?)',
+        [
+          occurrenceId,
+          text
+        ],
+      );
+    });
+
+    return occurrenceId;
+  }
+
+  Future<int> addOccurrenceMonitorValue(int occurrenceId, double value) async {
+    final db = await instance.database;
+
+    // Use a parameterized SQL query to prevent SQL injection.
+    await db.transaction((txn) async {
+      await txn.rawInsert(
+        'INSERT INTO occurrences_monitor (occurrence_id, value) VALUES (?, ?)',
+        [
+          occurrenceId,
+          value
+        ],
+      );
+    });
+
+    return occurrenceId;
   }
 
   Future<DateTime> addOccurrenceWithOccurrenceTimerStart(int trackerId, double? latitude, double? longitude) async {
@@ -296,6 +398,78 @@ class TrackerRepository {
     return now;
   }
 
+  void updateOccurrence(int occurrenceId, DateTime datetime) async {
+    final db = await instance.database;
+
+    String datetimeFormatted = datetime.toIso8601String();
+    await db.rawUpdate('''UPDATE occurrences
+      SET datetime = ?
+      WHERE occurrence_id = ?''',
+      [datetimeFormatted, occurrenceId]);
+  }
+
+  void updateOccurrenceTimerEnd(int occurrenceId, DateTime endTime) async {
+    final db = await instance.database;
+
+    String endTimeFormatted = endTime.toIso8601String();
+    await db.rawUpdate('''UPDATE occurrences_timer
+      SET end_time = ?
+      WHERE occurrence_id = ?''',
+      [endTimeFormatted, occurrenceId]);
+  }
+
+  void updateOccurrenceText(int occurrenceId, String text) async {
+    final db = await instance.database;
+
+    await db.rawUpdate('''UPDATE occurrences_text
+      SET text = ?
+      WHERE occurrence_id = ?''',
+      [text, occurrenceId]);
+  }
+
+  void updateOccurrenceMonitor(int occurrenceId, double value) async {
+    final db = await instance.database;
+
+    await db.rawUpdate('''UPDATE occurrences_monitor
+      SET value = ?
+      WHERE occurrence_id = ?''',
+      [value, occurrenceId]);
+  }
+
+  Future<void> deleteOccurrence(int occurrenceId) async {
+    final db = await instance.database;
+
+    await db.transaction((txn) async {
+      // Delete from occurrences_timer if exists
+      await txn.delete(
+        'occurrences_timer',
+        where: 'occurrence_id = ?',
+        whereArgs: [occurrenceId],
+      );
+
+      // Delete from occurrences_text if exists
+      await txn.delete(
+        'occurrences_text',
+        where: 'occurrence_id = ?',
+        whereArgs: [occurrenceId],
+      );
+
+      // Delete from occurrences_monitor if exists
+      await txn.delete(
+        'occurrences_monitor',
+        where: 'occurrence_id = ?',
+        whereArgs: [occurrenceId],
+      );
+
+      // Finally, delete from occurrences
+      await txn.delete(
+        'occurrences',
+        where: 'occurrence_id = ?',
+        whereArgs: [occurrenceId],
+      );
+    });
+  }
+
   Future<void> deleteTrackerAndOccurrences(int trackerId) async {
     final db = await instance.database;
 
@@ -361,6 +535,49 @@ class TrackerRepository {
         : [];
 
     return trackers;
+  }
+
+    Future<List<Occurrence>> getOccurrencesByTrackerId(int trackerId) async {
+    final db = await instance.database;
+
+    // A query to get all trackers with their number of occurrences
+    // It performs a LEFT JOIN to include trackers with zero occurrences
+    final result = await db.rawQuery('''
+      SELECT o.occurrence_id, o.tracker_id, o.datetime, otime.end_time, otext.text, omonitor.value
+      FROM occurrences o
+      LEFT JOIN occurrences_timer otime ON o.occurrence_id = otime.occurrence_id
+      LEFT JOIN occurrences_text otext ON o.occurrence_id = otext.occurrence_id
+      LEFT JOIN occurrences_monitor omonitor ON o.occurrence_id = omonitor.occurrence_id
+      WHERE o.tracker_id = ?
+      ORDER BY o.datetime DESC;
+    ''', [trackerId]);
+
+    // Map the query results to a list of Tracker objects
+    List<Occurrence> trackers = result.isNotEmpty
+        ? result.map((c) => Occurrence.fromMap(c)).toList()
+        : [];
+
+    return trackers;
+  }
+
+  Future<Tracker> getTrackerWithOccurrences(int trackerId) async {
+    final db = await instance.database;
+
+    // A query to get all trackers with their number of occurrences
+    // It performs a LEFT JOIN to include trackers with zero occurrences
+    final result = await db.rawQuery('''
+      SELECT t.tracker_id, t.name, t.unit, t.type, COUNT(o.occurrence_id) as occurrences
+      FROM trackers t
+      LEFT JOIN occurrences o ON t.tracker_id = o.tracker_id
+      WHERE t.tracker_id = ?
+      GROUP BY t.tracker_id
+      ORDER BY t.name ASC;
+    ''', [trackerId]);
+
+    // Map the query results to a list of Tracker objects
+    Tracker tracker = Tracker.fromMap(result.first);
+
+    return tracker;
   }
 
   Future<TrackerDetails> getTrackerDetails(trackerId) async {
