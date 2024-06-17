@@ -969,9 +969,8 @@ class TrackerRepository {
 
     return exportPath;
   }
-  
-  Future<void> replaceDatabaseFromJSON(String jsonPath) async {
 
+  Future<void> replaceDatabaseFromJSON(String jsonPath) async {
     final db = await instance.database;
 
     // Read the JSON file
@@ -979,23 +978,27 @@ class TrackerRepository {
     String jsonString = await jsonFile.readAsString();
     Map<String, dynamic> jsonData = jsonDecode(jsonString);
 
-    // Begin a transaction
+    // Clear the existing tables
     await db.transaction((txn) async {
-      // Clear existing data
+      // Get list of existingTables. Some OSs may have OS specific tables such as android_metatable, lets make sure this method works cross platform
       List<Map<String, dynamic>> tables = await txn.rawQuery('SELECT name FROM sqlite_master WHERE type="table"');
-      for (var table in tables) {
-        String tableName = table['name'];
-        await txn.delete(tableName);
+      Set<String> existingTables = tables.map((table) => table['name'].toString()).toSet();
+
+      // Delete existing data in tables that are in the JSON but also exist in the current database
+      for (var table in jsonData.keys) {
+        if (existingTables.contains(table)) {
+          await txn.delete(table);
+        }
       }
 
       // Insert new data from JSON
       for (var tableName in jsonData.keys) {
-        List<dynamic> rows = jsonData[tableName];
-        for (var row in rows) {
-          await txn.insert(tableName, Map<String, dynamic>.from(row));
+        if (existingTables.contains(tableName)) {
+          for (var row in jsonData[tableName]) {
+            await txn.insert(tableName, Map<String, dynamic>.from(row));
+          }
         }
       }
     });
   }
-
 }
