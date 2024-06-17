@@ -52,7 +52,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
   }
 
   Future<List<FlSpot>> getLineChartData(trackerId) async{
-    DateTime filterDate = DateTime.now().subtract(Duration(days:31));
+    DateTime filterDate = DateTime.now().subtract(Duration(days:29));
     DateTime filterDateEnd = DateTime.now(); // might modify at some point
     // Filtering the list
     List<Occurrence> filteredOccurrences = _occurrences.where((occurrence) {
@@ -67,6 +67,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
 
     if(_tracker?.type == TrackerType.timer){
       List<int> occurrenceDurationsByDay = StatisticsHelper().binOccurrenceDurationsByDay(filteredOccurrences, filterDate, DateTime.now());
+      
       return List.generate(occurrenceDurationsByDay.length, (index) {
         // Create a FlSpot for each hour with the number of occurrences
         return FlSpot(index.toDouble()+1.5, occurrenceDurationsByDay[index].toDouble());
@@ -103,8 +104,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
       chartData.addAll(List.generate(filteredOccurrences.length, (index) {
         double idx = filterDateEnd.difference(filteredOccurrences[index].datetime).inSeconds / (60*60*24);
         double val = filteredOccurrences[index].value != null ? filteredOccurrences[index].value! : 0;
-        //print("$idx ${filteredOccurrences[index].value}");
-        return FlSpot(numberOfDays-idx-2, val);
+        return FlSpot(numberOfDays-idx-0.5, val); // 0.5 is the offset to make sure 12:00 is visually in the middle of a day.
       }).reversed);
       return chartData;
     } else {

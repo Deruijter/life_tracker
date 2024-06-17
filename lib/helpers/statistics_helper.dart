@@ -1,4 +1,5 @@
 import '../entities/occurrence.dart';
+import 'package:flutter/material.dart';
 
 class StatisticsHelper {
   List<int> binOccurrencesByHour(
@@ -21,19 +22,19 @@ class StatisticsHelper {
   }
   List<int> binOccurrencesByDay(List<Occurrence> occurrences, DateTime start, DateTime end) {
     // Calculate the difference in hours plus one to include the end day.
-    int totalDays = end.difference(start).inDays-2;
+    int totalDays = end.difference(start).inDays;
 
     // Initialize a list for the number of hours with zeros.
     List<int> dayOccurrences = List.generate(totalDays, (index) => 0);
 
     for (var occurrence in occurrences) {
-      DateTime occurrenceTime = occurrence.datetime;
+      DateTime occurrenceTime = DateUtils.dateOnly(occurrence.datetime);
       if (occurrenceTime.isAfter(start) && occurrenceTime.isBefore(end)) {
-        int dayIndex = occurrenceTime.difference(start).inDays-2;
+        int dayIndex = occurrenceTime.difference(start).inDays;
         dayOccurrences[dayIndex]++;
       }
     }
-    print(dayOccurrences.length);
+    
     return dayOccurrences;
   }
 
@@ -43,8 +44,13 @@ class StatisticsHelper {
     DateTime timeEnd,
   ) {
     // Calculate the number of whole days
-    int numberOfDays = timeEnd.difference(timeStart).inDays -2; //Subtract some days so we don't go out of bounds of the plot
+    int numberOfDays = timeEnd.difference(timeStart).inDays; //Subtract some days so we don't go out of bounds of the plot
     List<int> dailyDurations = List.filled(numberOfDays, 0);
+
+    // A bit of a hack to make sure we only use whole days and nog 24h differ
+    // So basically we set the end date to "tomorrow at 00:00"
+    timeStart = DateUtils.dateOnly(timeStart).add(Duration(days: 1));
+    timeEnd = DateUtils.dateOnly(timeEnd).add(Duration(days: 1)); 
 
     for (var occurrence in occurrences) {
       DateTime occurrenceTimeEnd = occurrence.endTime != null ? occurrence.endTime! : DateTime.now();
@@ -78,7 +84,7 @@ class StatisticsHelper {
           currentEnd = occurrenceEnd;
         }
 
-        int dayIndex = currentStart.difference(timeStart).inDays-2;
+        int dayIndex = currentStart.difference(timeStart).inDays;
         if (dayIndex >= 0 && dayIndex < numberOfDays) {
           dailyDurations[dayIndex] += (currentEnd.difference(currentStart).inSeconds / 60).round(); // Use inSeconds because inMinutes only takes whole minutes
         }
