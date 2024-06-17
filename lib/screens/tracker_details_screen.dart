@@ -52,21 +52,108 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
   }
 
   Future<List<FlSpot>> getLineChartData(trackerId) async{
-    String dateYesterdayStart = DateHelper().getDateYesterdayStart();
-    String dateTodayEnd = DateHelper().getDateTodayEnd();
-    List<Map<String, dynamic>> todayOccurrences = await TrackerRepository.instance
-        .getOccurrencesForTrackerByDate(trackerId, dateYesterdayStart, dateTodayEnd);
+    DateTime filterDate = DateTime.now().subtract(Duration(days:31));
+    DateTime filterDateEnd = DateTime.now(); // might modify at some point
+    // Filtering the list
+    List<Occurrence> filteredOccurrences = _occurrences.where((occurrence) {
+      return occurrence.datetime.isAfter(filterDate);
+    }).toList();
 
-    List<int> occurrencesByHour = StatisticsHelper().binOccurrencesByHour(todayOccurrences, DateTime.parse(dateYesterdayStart), DateTime.parse(dateTodayEnd));
+    if(filteredOccurrences.isEmpty){
+      return [];
+    }
+
+    int numberOfDays = filterDateEnd.difference(filterDate).inDays + 1;
+
+    if(_tracker?.type == TrackerType.timer){
+      List<int> occurrenceDurationsByDay = StatisticsHelper().binOccurrenceDurationsByDay(filteredOccurrences, filterDate, DateTime.now());
+      return List.generate(occurrenceDurationsByDay.length, (index) {
+        // Create a FlSpot for each hour with the number of occurrences
+        return FlSpot(index.toDouble()+1.5, occurrenceDurationsByDay[index].toDouble());
+      });
+    } else if(_tracker?.type == TrackerType.monitor){
+      // If there was an occurrence before the filterDate, interpolate that value so we can start the graph with that value
+      List<Occurrence> oc = _occurrences.map((item) => item.copy(
+        item.id, item.trackerId, item.datetime,
+        item.endTime, item.text, item.value)).toList();
+      oc.sort((a, b) => a.datetime.compareTo(b.datetime));
+      // Find the latest occurrence before the filterDate
+      Occurrence? occurrenceBeforeFilterDate = oc
+        .where((occurrence) => occurrence.datetime.isBefore(filterDate))
+        .toList().isNotEmpty
+        ? oc
+          .where((occurrence) => occurrence.datetime.isBefore(filterDate))
+          .last
+        : null;
+      Occurrence? occurrenceAfterFilterDate = oc
+        .where((occurrence) => occurrence.datetime.isAfter(filterDate))
+        .toList().isNotEmpty
+        ? oc
+          .where((occurrence) => occurrence.datetime.isAfter(filterDate))
+          .first
+        : null;
+
+      double interpolateDateValue = 0;
+      if (occurrenceBeforeFilterDate != null && occurrenceAfterFilterDate != null) {
+        interpolateDateValue = StatisticsHelper().interpolateDateValue(occurrenceBeforeFilterDate, occurrenceAfterFilterDate, filterDate);
+      }
+
+      List<FlSpot> chartData = [FlSpot(1, interpolateDateValue)];
+
+      chartData.addAll(List.generate(filteredOccurrences.length, (index) {
+        double idx = filterDateEnd.difference(filteredOccurrences[index].datetime).inSeconds / (60*60*24);
+        double val = filteredOccurrences[index].value != null ? filteredOccurrences[index].value! : 0;
+        //print("$idx ${filteredOccurrences[index].value}");
+        return FlSpot(numberOfDays-idx-2, val);
+      }).reversed);
+      return chartData;
+    } else {
+      List<int> occurrencesByDay = StatisticsHelper().binOccurrencesByDay(filteredOccurrences, filterDate, DateTime.now());
+      return List.generate(occurrencesByDay.length, (index) {
+        return FlSpot(index.toDouble()+1.5, occurrencesByDay[index].toDouble());
+      });
+    }
+  }
+
+  List<FlSpot> getLineChartDataWeekend(maxYValue) {
+    DateTime filterDate = DateTime.now().subtract(Duration(days:30));
+    DateTime filterDateEnd = DateTime.now(); // might modify at some point
+
+    int numberOfDays = filterDateEnd.difference(filterDate).inDays +1;
+
+    bool isWeekend = filterDate.add(Duration(days: 1)).weekday == DateTime.saturday || filterDate.weekday == DateTime.sunday;
+    List<FlSpot> spots = [FlSpot(1,isWeekend ? maxYValue : 0.0)];
+
+    double previousValue = isWeekend ? maxYValue : 0.0;
+    for (int i = 1; i < numberOfDays; i++) {
+      DateTime date = filterDate.add(Duration(days: i+1));
+      bool isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      spots.add(FlSpot(i.toDouble(), previousValue)); // So that the bar chart is straight; add 0.5 offset so bars are actually centered on the weekends
+      spots.add(FlSpot(i.toDouble(), isWeekend ? maxYValue : 0.0));
+      previousValue = isWeekend ? maxYValue : 0.0;
+    }
     
-    return List.generate(occurrencesByHour.length, (index) {
-      // Create a FlSpot for each hour with the number of occurrences
-      return FlSpot(index.toDouble(), occurrencesByHour[index].toDouble());
-    });
+    return spots;
+  }
+
+  Map<int, String> getMondayLabels() {
+    Map<int, String> labels = {};
+    DateTime filterDate = DateTime.now().subtract(Duration(days:30));
+    DateTime filterDateEnd = DateTime.now(); // might modify at some point
+    int numberOfDays = filterDateEnd.difference(filterDate).inDays +1;
+    
+    for (int i = 0; i < numberOfDays-1; i++) {
+      DateTime date = filterDate.add(Duration(days: i+1));
+      if (date.weekday == DateTime.monday) {
+        labels[i] = DateFormat('MMM d').format(date);
+      }
+    }
+
+    return labels;
   }
 
   void _showManualEntryDialog({Occurrence? occurrence}) {
-    DateTime selectedDateTime = occurrence?.time ?? DateTime.now();
+    DateTime selectedDateTime = occurrence?.datetime ?? DateTime.now();
     String textInput = occurrence?.text ?? '';
     int durationInput = 0;
     double numericInput = occurrence?.value ?? 0.0;
@@ -283,139 +370,124 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
               Text('Occurrences This Year: ${widget.trackerDetails?.occurrencesThisYear}'),
               Text('Occurrences Total: ${widget.trackerDetails?.occurrencesTotal}'),
               Divider(height: 32),
+              if(widget.trackerDetails?.type != TrackerType.text) // I know, I should wrap these in one if block
+                Text('Past 4 weeks:', textScaleFactor: 1.3),
+              if(widget.trackerDetails?.type != TrackerType.text)
+                Divider(height: 12, thickness: 0.01),
+              if(widget.trackerDetails?.type != TrackerType.text)
+                Container(
+                  height: 200,
+                  child: FutureBuilder<List<FlSpot>>(
+                    future: getLineChartData(trackerId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error loading histogram data'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Center(child: Text('No histogram data available'));
+                      }    
+                      
+                      // Find the maximum y-value in your data
+                      double maxYValue = snapshot.data!
+                          .map((spot) => spot.y)
+                          .reduce(max); // Use 'max' from 'dart:math'
+                      maxYValue = maxYValue + 1;
+
+                      // Once the data is available, build the BarChart
+                      return LineChart(
+                        LineChartData(
+                          maxY: maxYValue,
+                          minY: 0,
+                          minX: 1,
+                          maxX: 30,
+                          // A grid behind the graph
+                          gridData: FlGridData(show: false),
+                          // Enable the border
+                          borderData: FlBorderData(show: true),
+                          // Setup your titles here...
+                          titlesData: FlTitlesData(    
+                            bottomTitles: SideTitles(
+                              showTitles: true,
+                              getTitles: (value) {
+                                Map<int, String> mondayLabels = getMondayLabels();
+                                return mondayLabels[value.toInt()] ?? '';
+                              },
+                              getTextStyles: (context, value) => const TextStyle(
+                                color: Color(0xff68737d),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              margin: 10, // Space between the axis and titles
+                            ),
+                            // Left titles (y-axis)
+                            leftTitles: SideTitles(
+                              showTitles: true,
+                              interval: (maxYValue/6).round().toDouble(),
+                              reservedSize: maxYValue >= 100 ? 20 : (maxYValue >= 10 ? 12 : 4),
+                              margin: maxYValue >= 100 ? 12 : (maxYValue >= 10 ? 12: 10),
+                            ),
+                          ),
+                          // The line bars data
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: snapshot.data!,
+                              isCurved: true, // Optional, if you want a curved line
+                              curveSmoothness: 0.2,
+                              preventCurveOverShooting: true,
+                              isStrokeCapRound: false,
+                              colors: [Colors.blue],
+                              barWidth: 2,
+                              dotData: FlDotData(show: false), // Show the dots on the line
+                              belowBarData: BarAreaData(show: true, colors: [Colors.blue.shade50]), // No fill below the line
+                            ),
+                            LineChartBarData(
+                              // A fake bar chart rod data that spans the entire Y-axis height
+                              // to act as the background for "night" times
+                              spots: getLineChartDataWeekend(maxYValue),
+                              isCurved: false,
+                              colors: [Colors.grey.withOpacity(0.9)], // Dark color for the "night" time
+                              barWidth: double.infinity, // Make the bar cover the entire chart width
+                              isStrokeCapRound: true,
+                              dotData: FlDotData(show: false), // Do not show dots
+                              belowBarData: BarAreaData(
+                                show: true,
+                                colors: [Colors.grey.withOpacity(0.2)],
+                              ),
+                            ),
+                          ],  // Define extra lines
+                          // extraLinesData: ExtraLinesData(
+                          //   // Add a vertical line
+                          //   verticalLines: [
+                          //     VerticalLine(
+                          //       // Assuming your x-axis is hours of the day, set the x value to the current hour
+                          //       x: DateTime.now().hour.toDouble()+24,
+                          //       // Style the line
+                          //       color: Colors.red,
+                          //       strokeWidth: 2,
+                          //       // Optionally, add a dash pattern for the line
+                          //       dashArray: [5, 5],
+                          //     ),
+                          //     VerticalLine(
+                          //       // Assuming your x-axis is hours of the day, set the x value to the current hour
+                          //       x: 24,
+                          //       // Style the line
+                          //       color: Colors.black,
+                          //       strokeWidth: 2,
+                          //     ),
+                          //   ],
+                          //   // You can also define horizontalLines if needed
+                          // ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              if(widget.trackerDetails?.type != TrackerType.text)
+                Divider(height: 32),
               ElevatedButton(
                 onPressed: _showManualEntryDialog,
                 child: Text('Add Manual Entry'),
-              ),
-              Divider(height: 32),
-              Container(
-                height: 200,
-                child: FutureBuilder<List<FlSpot>>(
-                  future: getLineChartData(trackerId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text('Error loading histogram data'));
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(child: Text('No histogram data available'));
-                    }    
-                    
-                    // Find the maximum y-value in your data
-                    double maxYValue = snapshot.data!
-                        .map((spot) => spot.y)
-                        .reduce(max); // Use 'max' from 'dart:math'
-                    maxYValue = maxYValue + 1;
-
-                    // Once the data is available, build the BarChart
-                    return LineChart(
-                      LineChartData(
-                        maxY: maxYValue,
-                        minY: 0,
-                        minX: 0,
-                        maxX: 48,
-                        // A grid behind the graph
-                        gridData: FlGridData(show: false),
-                        // Enable the border
-                        borderData: FlBorderData(show: true),
-                        // Setup your titles here...
-                        titlesData: FlTitlesData(    
-                          bottomTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 30, // Adjust the space for titles if necessary
-                            getTitles: (value) {
-                              // Assuming that value 12 represents the midpoint of yesterday
-                              // and value 36 represents the midpoint of today
-                              switch (value.toInt()) {
-                                case 12:
-                                  return 'Yesterday';
-                                case 36:
-                                  return 'Today';
-                                default:
-                                  return ''; // Returning an empty string will not draw any title
-                              }
-                            },
-                            // Styling for the titles
-                            getTextStyles: (context, value) => const TextStyle(
-                              color: Color(0xff68737d),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                            margin: 10, // Space between the axis and titles
-                          ),
-                          // Left titles (y-axis)
-                          leftTitles: SideTitles(
-                            showTitles: true,
-                            // Adjust reservedSize to control the space for y-axis titles
-                            reservedSize: 0, // Decrease if necessary
-                            // ... other SideTitles settings for leftTitles
-                          ),
-                        ),
-                        // The line bars data
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: snapshot.data!,
-                            isCurved: true, // Optional, if you want a curved line
-                            curveSmoothness: 0.2,
-                            preventCurveOverShooting: true,
-                            isStrokeCapRound: true,
-                            colors: [Colors.grey],
-                            barWidth: 4,
-                            dotData: FlDotData(show: false), // Show the dots on the line
-                            belowBarData: BarAreaData(show: true, colors: [Colors.grey]), // No fill below the line
-                          ),
-                          LineChartBarData(
-                            // A fake bar chart rod data that spans the entire Y-axis height
-                            // to act as the background for "night" times
-                            spots: [
-                              FlSpot(0, maxYValue),
-                              FlSpot(6, maxYValue),
-                              FlSpot(6, 0),
-                              FlSpot(18, 0),
-                              FlSpot(18, maxYValue),
-                              FlSpot(30, maxYValue),
-                              FlSpot(30, 0),
-                              FlSpot(42, 0), 
-                              FlSpot(42, maxYValue),
-                              FlSpot(48, maxYValue),
-                            ],
-                            isCurved: false,
-                            colors: [Colors.grey.withOpacity(0.9)], // Dark color for the "night" time
-                            barWidth: double.infinity, // Make the bar cover the entire chart width
-                            isStrokeCapRound: true,
-                            dotData: FlDotData(show: false), // Do not show dots
-                            belowBarData: BarAreaData(
-                              show: true,
-                              colors: [Colors.grey.withOpacity(0.2)],
-                            ),
-                          ),
-                        ],  // Define extra lines
-                        extraLinesData: ExtraLinesData(
-                          // Add a vertical line
-                          verticalLines: [
-                            VerticalLine(
-                              // Assuming your x-axis is hours of the day, set the x value to the current hour
-                              x: DateTime.now().hour.toDouble()+24,
-                              // Style the line
-                              color: Colors.red,
-                              strokeWidth: 2,
-                              // Optionally, add a dash pattern for the line
-                              dashArray: [5, 5],
-                            ),
-                            VerticalLine(
-                              // Assuming your x-axis is hours of the day, set the x value to the current hour
-                              x: 24,
-                              // Style the line
-                              color: Colors.black,
-                              strokeWidth: 2,
-                            ),
-                          ],
-                          // You can also define horizontalLines if needed
-                        ),
-                      ),
-                    );
-                  },
-                ),
               ),
               Divider(height: 32),
               _buildOccurrencesTable(),
@@ -461,7 +533,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
     return _occurrences.map((occurrence) {
       List<DataCell> cells = [
         DataCell(Text(occurrence.id.toString())),
-        DataCell(Text(DateFormat('yyyy-MM-dd HH:mm').format(occurrence.time))),
+        DataCell(Text(DateFormat('yyyy-MM-dd HH:mm').format(occurrence.datetime))),
       ];
 
       if (widget.trackerDetails?.type == TrackerType.timer) {
