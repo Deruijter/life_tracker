@@ -9,6 +9,7 @@ import '../repositories/tracker_repository.dart';
 import '../helpers/statistics_helper.dart';
 import '../services/occurrence_service.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import 'dart:math';
 
 class TrackerDetailsScreen extends StatefulWidget {
@@ -155,7 +156,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
   void _showManualEntryDialog({Occurrence? occurrence}) {
     DateTime selectedDateTime = occurrence?.datetime ?? DateTime.now();
     String textInput = occurrence?.text ?? '';
-    int durationInput = 0;
+    int durationInput = occurrence?.getDurationInMinutes() ?? 0;
     double numericInput = occurrence?.value ?? 0.0;
 
     showDialog(
@@ -203,10 +204,16 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
                     TextField(
                       decoration: const InputDecoration(labelText: 'Duration (minutes)'),
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*')),
+                      ],
                       onChanged: (value) {
                         durationInput = int.tryParse(value) ?? 0;
                       },
+                      controller: TextEditingController(text: durationInput.toString()),
                     ),
+
                   if (widget.trackerDetails?.type == TrackerType.text)
                     TextField(
                       decoration: const InputDecoration(labelText: 'Text'),
@@ -215,10 +222,15 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
                       },
                       controller: TextEditingController(text: textInput),
                     ),
+
                   if (widget.trackerDetails?.type == TrackerType.monitor)
                     TextField(
                       decoration: const InputDecoration(labelText: 'Value'),
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*[\.,]?\d*')),
+                      ],
                       onChanged: (value) {
                         numericInput = double.tryParse(value) ?? 0.0;
                       },

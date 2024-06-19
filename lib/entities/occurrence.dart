@@ -1,5 +1,3 @@
-import '../repositories/tracker_repository.dart';
-
 class Occurrence {
   final int id;
   final int trackerId;
