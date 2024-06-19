@@ -6,8 +6,8 @@ import '../entities/tracker_details.dart';
 import '../entities/occurrence.dart';
 import '../widgets/app_drawer.dart';
 import '../repositories/tracker_repository.dart';
-import '../helpers/date_helper.dart';
 import '../helpers/statistics_helper.dart';
+import '../services/occurrence_service.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
 
@@ -359,16 +359,10 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Name: ${widget.trackerDetails?.name}', style: Theme.of(context).textTheme.headline6),
-              SizedBox(height: 8),
-              Text('Unit: ${widget.trackerDetails?.unit}', style: Theme.of(context).textTheme.subtitle1),
-              Divider(height: 32),
-              Text('Occurrences Today: ${widget.trackerDetails?.occurrencesToday}'),
-              Text('Occurrences Yesterday: ${widget.trackerDetails?.occurrencesYesterday}'),
-              Text('Occurrences This Week: ${widget.trackerDetails?.occurrencesThisWeek}'),
-              Text('Occurrences This Month: ${widget.trackerDetails?.occurrencesThisMonth}'),
-              Text('Occurrences This Year: ${widget.trackerDetails?.occurrencesThisYear}'),
-              Text('Occurrences Total: ${widget.trackerDetails?.occurrencesTotal}'),
+              if(widget.trackerDetails?.type != TrackerType.timer)
+                _buildPeriodicInfoTableDefault(),
+              if(widget.trackerDetails?.type == TrackerType.timer)
+                _buildPeriodicInfoTableTimer(),
               Divider(height: 32),
               if(widget.trackerDetails?.type != TrackerType.text) // I know, I should wrap these in one if block
                 Text('Past 4 weeks:', textScaleFactor: 1.3),
@@ -508,6 +502,79 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
               rows: _buildRows(),
             ),
           );
+  }
+
+  Widget _buildPeriodicInfoTableDefault() {
+    return 
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget> [
+              Text('Name: ${_tracker?.name}', style: Theme.of(context).textTheme.headline6),
+              SizedBox(height: 8),
+              Text('Unit: ${_tracker?.unit}', style: Theme.of(context).textTheme.subtitle1),
+              SizedBox(height: 8),
+              Text('Occurrences Today: ${widget.trackerDetails?.occurrencesToday}'),
+              Text('Occurrences Yesterday: ${widget.trackerDetails?.occurrencesYesterday}'),
+              Text('Occurrences This Week: ${widget.trackerDetails?.occurrencesThisWeek}'),
+              Text('Occurrences This Month: ${widget.trackerDetails?.occurrencesThisMonth}'),
+              Text('Occurrences This Year: ${widget.trackerDetails?.occurrencesThisYear}'),
+              Text('Occurrences Total: ${widget.trackerDetails?.occurrencesTotal}'),
+        ]
+      );
+  }
+
+  Widget _buildPeriodicInfoTableTimer() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future:  _getDurations(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData) {
+          return Center(child: Text('No data available'));
+        } else {
+          var data = snapshot.data!;
+          return 
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget> [
+                    Text('Name: ${_tracker?.name}', style: Theme.of(context).textTheme.headline6),
+                    SizedBox(height: 8),
+                    Text('Unit: time', style: Theme.of(context).textTheme.subtitle1),
+                    SizedBox(height: 8),
+                    Text('Today: ${data['durationToday'] <= 60 ? data['durationToday'] : (data['durationToday']/60).toStringAsFixed(1)} ${data['durationToday'] <= 60 ? 'minutes' : 'hours'}'),
+                    Text('Yesterday: ${data['durationYesterday'] <= 60 ? data['durationYesterday'] : (data['durationYesterday']/60).toStringAsFixed(1)} ${data['durationYesterday'] <= 60 ? 'minutes' : 'hours'}'),
+                    Text('This Week: ${data['durationThisWeek'] <= 60 ? data['durationThisWeek'] : (data['durationThisWeek']/60).toStringAsFixed(0)} ${data['durationThisWeek'] <= 60 ? 'minutes' : 'hours'}'),
+                    Text('This Month: ${data['durationThisMonth'] <= 60 ? data['durationThisMonth'] : (data['durationThisMonth']/60).toStringAsFixed(0)} ${data['durationThisMonth'] <= 60 ? 'minutes' : 'hours'}'),
+                    Text('This Year: ${data['durationThisYear'] <= 60 ? data['durationThisYear'] : (data['durationThisYear']/60).toStringAsFixed(0)} ${data['durationThisYear'] <= 60 ? 'minutes' : 'hours'}'),
+                    Text('Total: ${data['durationAllTime'] <= 60 ? data['durationAllTime'] : (data['durationAllTime']/60).toStringAsFixed(0)} ${data['durationAllTime'] <= 60 ? 'minutes' : 'hours'}'),
+              ]
+            );
+        }
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> _getDurations() async {
+    DateTime now = DateTime.now();
+    DateTime todayEnd = new DateTime(now.year, now.month, now.day, 23, 59, 59);
+    DateTime todayStart = new DateTime(now.year, now.month, now.day, 0, 0, 0);
+    DateTime yesterdayStart = new DateTime(now.year, now.month, now.day, 0, 0, 0).subtract(Duration(days: 1));
+    DateTime yesterdayEnd = new DateTime(now.year, now.month, now.day, 0, 0, 0);
+    DateTime weekStart = new DateTime(now.year, now.month, now.day, 0, 0, 0).subtract(Duration(days: now.weekday));
+    DateTime monthStart = new DateTime(now.year, now.month, 1, 0, 0, 0);
+    DateTime yearStart = new DateTime(now.year, 1, 1, 0, 0, 0);
+    DateTime epochStart = DateTime.fromMillisecondsSinceEpoch(0);
+
+    return {
+      'durationToday': await OccurrenceService().getDurationMinutes(_occurrences, todayStart, todayEnd),
+      'durationYesterday': await OccurrenceService().getDurationMinutes(_occurrences, yesterdayStart, yesterdayEnd),
+      'durationThisWeek': await OccurrenceService().getDurationMinutes(_occurrences, weekStart, todayEnd),
+      'durationThisMonth': await OccurrenceService().getDurationMinutes(_occurrences, monthStart, todayEnd),
+      'durationThisYear': await OccurrenceService().getDurationMinutes(_occurrences, yearStart, todayEnd),
+      'durationAllTime': await OccurrenceService().getDurationMinutes(_occurrences,epochStart, todayEnd)
+      };
   }
 
   List<DataColumn> _buildColumns() {
