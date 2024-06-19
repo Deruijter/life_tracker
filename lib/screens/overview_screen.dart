@@ -144,7 +144,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
   void _decrementStopOccurrence(Tracker tracker) async {
     switch(tracker.type){
       case TrackerType.counter:
-        await TrackerRepository.instance.deleteNewestOccurrence(tracker.id);
+        // Only remove todays occurrences
+        if(tracker.occurrences > 0) { 
+          await TrackerRepository.instance.deleteNewestOccurrence(tracker.id);
+        }
       case TrackerType.timer:
         DateTime endTime = await TrackerService().addOccurrenceTimerEnd(tracker);
         if(tracker is TimerTracker){ // Cast Tracker to TimerTracker
