@@ -359,11 +359,12 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if(widget.trackerDetails?.type != TrackerType.timer)
-                _buildPeriodicInfoTableDefault(),
+              if(widget.trackerDetails?.type != TrackerType.counter)
+                _buildPeriodicInfoTableCounter(),
               if(widget.trackerDetails?.type == TrackerType.timer)
                 _buildPeriodicInfoTableTimer(),
-              Divider(height: 32),
+              if(widget.trackerDetails?.type == TrackerType.counter || widget.trackerDetails?.type == TrackerType.timer)
+                Divider(height: 32),
               if(widget.trackerDetails?.type != TrackerType.text) // I know, I should wrap these in one if block
                 Text('Past 4 weeks:', textScaleFactor: 1.3),
               if(widget.trackerDetails?.type != TrackerType.text)
@@ -504,7 +505,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
           );
   }
 
-  Widget _buildPeriodicInfoTableDefault() {
+  Widget _buildPeriodicInfoTableCounter() {
     return 
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
