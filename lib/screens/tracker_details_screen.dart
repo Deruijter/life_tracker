@@ -8,6 +8,7 @@ import '../widgets/app_drawer.dart';
 import '../repositories/tracker_repository.dart';
 import '../helpers/statistics_helper.dart';
 import '../services/occurrence_service.dart';
+import './overview_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
@@ -273,8 +274,9 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
                   bool confirmed = await _showDeleteConfirmationDialog();
                   if (confirmed) {
                     _deleteEntry(occurrence.id);
+                    _refreshScreen();
+                    //overviewScreenKey.currentState?.refresh(); // So the Overview screen is refreshed when using the back button
                     Navigator.of(context).pop(); // Close the original dialog
-                    _refreshScreen(); // Refresh the screen after deletion
                   }
                 },
                 child: const Text('Delete'),
@@ -292,6 +294,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
                   _updateManualEntry(occurrence.id, selectedDateTime, textInput,
                       durationInput, numericInput);
                 }
+                //overviewScreenKey.currentState?.refresh();  // So the Overview screen is refreshed when using the back button
                 _refreshScreen(); // Refresh the screen after closing the dialog
                 Navigator.of(context).pop();
               },
@@ -376,7 +379,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
     TrackerService().deleteOccurrence(occurrenceId);
   }
 
-  void _refreshScreen() {
+  void _refreshScreen() async {
     _getTracker();
     _getOccurrences();
   }
@@ -384,55 +387,66 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final trackerId = widget.trackerDetails?.id ?? 0;
-    return Scaffold(
-        appBar: AppBar(
-          title: Text('Tracker Details'),
-          // The leading widget is on the left side of the app bar
-          leading: Builder(
-            builder: (BuildContext context) {
-              return IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
+    return WillPopScope(
+        onWillPop: () async {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => OverviewScreen()),
+          );
+          return false;
+        },
+        child: Scaffold(
+            appBar: AppBar(
+              title: Text('Tracker Details'),
+              // The leading widget is on the left side of the app bar
+              leading: Builder(
+                builder: (BuildContext context) {
+                  return IconButton(
+                    icon: const Icon(Icons.menu),
+                    onPressed: () {
+                      Scaffold.of(context).openDrawer();
+                    },
+                    tooltip:
+                        MaterialLocalizations.of(context).openAppDrawerTooltip,
+                  );
                 },
-                tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
-              );
-            },
-          ),
-        ),
-        drawer: const AppDrawer(),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (widget.trackerDetails?.type == TrackerType.counter)
-                  _buildPeriodicInfoTableCounter(),
-                if (widget.trackerDetails?.type == TrackerType.timer)
-                  _buildPeriodicInfoTableTimer(),
-                if (widget.trackerDetails?.type == TrackerType.text)
-                  _buildPeriodicInfoTableText(),
-                if (widget.trackerDetails?.type == TrackerType.monitor)
-                  _buildPeriodicInfoTableMonitor(),
-                Divider(height: 32),
-                if (widget.trackerDetails?.type != TrackerType.text) // I know, I should wrap these in one if block
-                  Text('Past 4 weeks:', textScaleFactor: 1.3),
-                if (widget.trackerDetails?.type != TrackerType.text)
-                  Divider(height: 12, thickness: 0.01),
-                if (widget.trackerDetails?.type != TrackerType.text)
-                  _buildChart(trackerId),
-                if (widget.trackerDetails?.type != TrackerType.text)
-                  Divider(height: 32),
-                ElevatedButton(
-                  onPressed: _showManualEntryDialog,
-                  child: Text('Add Manual Entry'),
-                ),
-                _buildOccurrencesTable(),
-              ],
+              ),
             ),
-          ),
-        ));
+            drawer: const AppDrawer(),
+            body: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.trackerDetails?.type == TrackerType.counter)
+                      _buildPeriodicInfoTableCounter(),
+                    if (widget.trackerDetails?.type == TrackerType.timer)
+                      _buildPeriodicInfoTableTimer(),
+                    if (widget.trackerDetails?.type == TrackerType.text)
+                      _buildPeriodicInfoTableText(),
+                    if (widget.trackerDetails?.type == TrackerType.monitor)
+                      _buildPeriodicInfoTableMonitor(),
+                    Divider(height: 32),
+                    if (widget.trackerDetails?.type !=
+                        TrackerType
+                            .text) // I know, I should wrap these in one if block
+                      Text('Past 4 weeks:', textScaleFactor: 1.3),
+                    if (widget.trackerDetails?.type != TrackerType.text)
+                      Divider(height: 12, thickness: 0.01),
+                    if (widget.trackerDetails?.type != TrackerType.text)
+                      _buildChart(trackerId),
+                    if (widget.trackerDetails?.type != TrackerType.text)
+                      Divider(height: 32),
+                    ElevatedButton(
+                      onPressed: _showManualEntryDialog,
+                      child: Text('Add Manual Entry'),
+                    ),
+                    _buildOccurrencesTable(),
+                  ],
+                ),
+              ),
+            )));
   }
 
   Widget _buildChart(trackerId) {
@@ -484,7 +498,9 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
                 // Left titles (y-axis)
                 leftTitles: SideTitles(
                   showTitles: true,
-                  interval: (maxYValue / 6).round().toDouble() != 0 ? (maxYValue / 6).round().toDouble() : 1,
+                  interval: (maxYValue / 6).round().toDouble() != 0
+                      ? (maxYValue / 6).round().toDouble()
+                      : 1,
                   reservedSize:
                       maxYValue >= 100 ? 20 : (maxYValue >= 10 ? 12 : 4),
                   margin: maxYValue >= 100 ? 12 : (maxYValue >= 10 ? 12 : 10),
@@ -613,33 +629,30 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
       },
     );
   }
+
   Widget _buildPeriodicInfoTableText() {
     return Container(
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('Name: ${_tracker?.name}',
-                style: Theme.of(context).textTheme.headline6),
-            SizedBox(height: 8),
-          ]
-      )
-    );
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+          Text('Name: ${_tracker?.name}',
+              style: Theme.of(context).textTheme.headline6),
+          SizedBox(height: 8),
+        ]));
   }
 
   Widget _buildPeriodicInfoTableMonitor() {
     return Container(
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('Name: ${_tracker?.name}',
-                style: Theme.of(context).textTheme.headline6),
-            SizedBox(height: 8),
-            Text('Unit: ${_tracker?.unit}',
-                style: Theme.of(context).textTheme.subtitle1),
-            SizedBox(height: 8),
-          ]
-      )
-    );
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+          Text('Name: ${_tracker?.name}',
+              style: Theme.of(context).textTheme.headline6),
+          SizedBox(height: 8),
+          Text('Unit: ${_tracker?.unit}',
+              style: Theme.of(context).textTheme.subtitle1),
+          SizedBox(height: 8),
+        ]));
   }
 
   Future<Map<String, dynamic>> _getDurations() async {
@@ -696,60 +709,60 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
   TableRow _buildHeader() {
     List<TableCell> cells = [
       TableCell(
-            child: Padding(
+          child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-          child: RichText(
-        text: TextSpan(
-          text: "Date time",
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(),
-        ),
-      )))
+              child: RichText(
+                text: TextSpan(
+                  text: "Date time",
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(),
+                ),
+              )))
     ];
 
     if (widget.trackerDetails?.type == TrackerType.timer) {
       cells.add(TableCell(
-            child: Padding(
+          child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-          child: Center(
-              child: RichText(
+              child: Center(
+                  child: RichText(
                 text: TextSpan(
                   text: "Minutes",
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(),
-        ),
-      )))));
+                ),
+              )))));
     } else if (widget.trackerDetails?.type == TrackerType.text) {
       cells.add(TableCell(
-            child: Padding(
+          child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-          child: Center(
-              child: RichText(
+              child: Center(
+                  child: RichText(
                 text: TextSpan(
                   text: "Text",
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(),
-        ),
-      )))));
+                ),
+              )))));
     } else if (widget.trackerDetails?.type == TrackerType.monitor) {
       cells.add(TableCell(
-            child: Padding(
+          child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-          child: Center(
-              child: RichText(
+              child: Center(
+                  child: RichText(
                 text: TextSpan(
                   text: "Value",
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(),
-        ),
-      )))));
+                ),
+              )))));
     }
 
     cells.add(TableCell(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-        child: RichText(
-          text: TextSpan(
-            text: "Actions",
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(),
-      ),
-    ))));
+        child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
+            child: RichText(
+              text: TextSpan(
+                text: "Actions",
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(),
+              ),
+            ))));
 
     TableRow tableRow = TableRow(children: cells);
     return tableRow;
@@ -762,14 +775,16 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
       return TableRow(children: [
         TableCell(
           verticalAlignment: TableCellVerticalAlignment.top,
-            child: Padding(
+          child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
               child: RichText(
                   text: TextSpan(children: [
-                    TextSpan(
-                      text: DateFormat("''yy MMM dd").format(occurrence.datetime) + 
-                        (widget.trackerDetails?.type == TrackerType.text ? "\n\r" : "  "),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(),
+                TextSpan(
+                  text: DateFormat("''yy MMM dd").format(occurrence.datetime) +
+                      (widget.trackerDetails?.type == TrackerType.text
+                          ? "\n\r"
+                          : "  "),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(),
                 ),
                 TextSpan(
                   text: DateFormat("HH:mm:ss").format(occurrence.datetime),
@@ -781,38 +796,39 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
         ),
         if (widget.trackerDetails?.type == TrackerType.timer)
           TableCell(
-            verticalAlignment: TableCellVerticalAlignment.top,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
-              child: Center(
-                child: RichText(
-                  text: TextSpan(children: [
-                    TextSpan(
-                      text: occurrence.getDurationInMinutes().toString(),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(),
-                )]),
-                )
-          ))),
+              verticalAlignment: TableCellVerticalAlignment.top,
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
+                  child: Center(
+                      child: RichText(
+                    text: TextSpan(children: [
+                      TextSpan(
+                        text: occurrence.getDurationInMinutes().toString(),
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(),
+                      )
+                    ]),
+                  )))),
         if (widget.trackerDetails?.type == TrackerType.text)
           TableCell(
-            verticalAlignment: TableCellVerticalAlignment.top,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
-              child: Center(
-            child: Text(occurrence.text ?? 'N/A'),
-          ))),
+              verticalAlignment: TableCellVerticalAlignment.top,
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
+                  child: Center(
+                    child: Text(occurrence.text ?? 'N/A'),
+                  ))),
         if (widget.trackerDetails?.type == TrackerType.monitor)
           TableCell(
-            verticalAlignment: TableCellVerticalAlignment.top,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
-              child: Center(
-            child: Text(occurrence.value.toString()),
-          ))),
+              verticalAlignment: TableCellVerticalAlignment.top,
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
+                  child: Center(
+                    child: Text(occurrence.value.toString()),
+                  ))),
         TableCell(
           verticalAlignment: TableCellVerticalAlignment.top,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
             child: IconButton(
               icon: Icon(Icons.more_vert),
               onPressed: () {
