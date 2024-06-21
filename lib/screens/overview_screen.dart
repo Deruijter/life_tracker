@@ -4,9 +4,6 @@ import '../repositories/tracker_repository.dart';
 import '../entities/tracker.dart';
 import '../entities/tracker_details.dart';
 import '../widgets/app_drawer.dart';
-import '../services/location_service.dart';
-import 'package:provider/provider.dart';
-import 'package:location/location.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
@@ -26,6 +23,12 @@ class _OverviewScreenState extends State<OverviewScreen> {
   @override
   void initState() {
     super.initState();
+    _loadTrackers();
+  }  
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadTrackers();
   }
 
@@ -178,278 +181,281 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Let's load the trackers each time we load the widget, 
-    // so we have correct info when switching to a new day, 
-    //or the user made changes on another screen
-    _loadTrackers();  
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Overview'),
-        // The leading widget is on the left side of the app bar
-        leading: Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-              tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
-            );
-          },
+
+    return WillPopScope(
+      onWillPop: () async {
+        // Move the app to the background instead of going back
+        SystemNavigator.pop();
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Overview'),
+          // The leading widget is on the left side of the app bar
+          leading: Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+              );
+            },
+          ),
         ),
-      ),
-      drawer: const AppDrawer(),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            child: ListView.builder(
-              itemCount: _trackers.length,
-              itemBuilder: (ctx, index) {
-                final tracker = _trackers[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                      vertical: 4.0, horizontal: 8.0),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment
-                          .start, // This aligns children to the start of the Row
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.bar_chart, color: Colors.grey),
-                          onPressed: () => _getTrackerDetails(tracker.id),
-                        ),
-                        if (tracker is CounterTracker)
-                          Expanded(
-                            // Wrap the Column in an Expanded widget to take all remaining space
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment
-                                  .start, // Align text to the start (left)
-                              children: [
-                                Text(
-                                  tracker.name,
-                                  style: const TextStyle(
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  '${tracker.occurrences} ${tracker.unit}',
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
+        drawer: const AppDrawer(),
+        body: Column(
+          children: <Widget>[
+            Expanded(
+              child: ListView.builder(
+                itemCount: _trackers.length,
+                itemBuilder: (ctx, index) {
+                  final tracker = _trackers[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 4.0, horizontal: 8.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment
+                            .start, // This aligns children to the start of the Row
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.bar_chart, color: Colors.grey),
+                            onPressed: () => _getTrackerDetails(tracker.id),
                           ),
-                        if (tracker is TimerTracker)
-                          Expanded(
-                            // Wrap the Column in an Expanded widget to take all remaining space
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment
-                                  .start, // Align text to the start (left)
-                              children: [
-                                Text(
-                                  tracker.name,
-                                  style: const TextStyle(
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                if (!tracker.isRunning())
+                          if (tracker is CounterTracker)
+                            Expanded(
+                              // Wrap the Column in an Expanded widget to take all remaining space
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment
+                                    .start, // Align text to the start (left)
+                                children: [
                                   Text(
-                                    '${tracker.durationFinished.round()} min.',
-                                    //'Last start: ${tracker.latestOccurrence} _ ${tracker.endTime}',
+                                    tracker.name,
+                                    style: const TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${tracker.occurrences} ${tracker.unit}',
                                     style: TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.grey[600],
                                     ),
                                   ),
-                                if (tracker.isRunning())
+                                ],
+                              ),
+                            ),
+                          if (tracker is TimerTracker)
+                            Expanded(
+                              // Wrap the Column in an Expanded widget to take all remaining space
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment
+                                    .start, // Align text to the start (left)
+                                children: [
                                   Text(
-                                    'Running since: ${DateFormat('yyyy-MM-dd kk:mm').format(tracker.latestOccurrence!)}',
+                                    tracker.name,
+                                    style: const TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (!tracker.isRunning())
+                                    Text(
+                                      '${tracker.durationFinished.round()} min.',
+                                      //'Last start: ${tracker.latestOccurrence} _ ${tracker.endTime}',
+                                      style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  if (tracker.isRunning())
+                                    Text(
+                                      'Running since: ${DateFormat('yyyy-MM-dd kk:mm').format(tracker.latestOccurrence!)}',
+                                      style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          if (tracker is TextTracker)
+                            Expanded(
+                              // Wrap the Column in an Expanded widget to take all remaining space
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment
+                                    .start, // Align text to the start (left)
+                                children: [
+                                  Text(
+                                    tracker.name,
+                                    style: const TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${tracker.text}',
                                     style: TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.grey[600],
                                     ),
                                   ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        if (tracker is TextTracker)
-                          Expanded(
-                            // Wrap the Column in an Expanded widget to take all remaining space
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment
-                                  .start, // Align text to the start (left)
-                              children: [
-                                Text(
-                                  tracker.name,
-                                  style: const TextStyle(
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold,
+                          if (tracker is MonitorTracker)
+                            Expanded(
+                              // Wrap the Column in an Expanded widget to take all remaining space
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment
+                                    .start, // Align text to the start (left)
+                                children: [
+                                  Text(
+                                    tracker.name,
+                                    style: const TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  '${tracker.text}',
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    color: Colors.grey[600],
+                                  Text(
+                                    '${tracker.value} ${tracker.unit}',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      color: Colors.grey[600],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        if (tracker is MonitorTracker)
-                          Expanded(
-                            // Wrap the Column in an Expanded widget to take all remaining space
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment
-                                  .start, // Align text to the start (left)
-                              children: [
-                                Text(
-                                  tracker.name,
-                                  style: const TextStyle(
-                                    fontSize: 18.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  '${tracker.value} ${tracker.unit}',
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (tracker.type == TrackerType.counter)
-                          Row(children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove, color: Colors.red),
-                              onPressed: () =>
-                                  _decrementStopOccurrence(tracker),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.add, color: Colors.green),
-                              onPressed: () => _addStartOccurrence(tracker),
-                            ),
-                          ]),
-                        if (tracker is TimerTracker)
-                          Row(children: [
-                            if (tracker
-                                .isRunning()) // If timer is running (i.e. there is an empty occurrence_timer)
+                          if (tracker.type == TrackerType.counter)
+                            Row(children: [
                               IconButton(
-                                icon: const Icon(Icons.stop, color: Colors.red),
+                                icon: const Icon(Icons.remove, color: Colors.red),
                                 onPressed: () =>
                                     _decrementStopOccurrence(tracker),
                               ),
-                            if (!tracker
-                                .isRunning()) // If timer NOT running (i.e. there no empty occurrence_timer)
                               IconButton(
-                                icon: const Icon(Icons.play_arrow,
-                                    color: Colors.green),
+                                icon: const Icon(Icons.add, color: Colors.green),
                                 onPressed: () => _addStartOccurrence(tracker),
                               ),
-                          ]),
-                        if (tracker is TextTracker)
-                          Row(children: [
-                            IconButton(
-                              icon: const Icon(Icons.text_increase,
-                                  color: Colors.green),
-                              onPressed: () async {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: Text('Enter Information'),
-                                      content: TextField(
-                                        controller: _textFieldController,
-                                        decoration:
-                                            InputDecoration(hintText: ""),
-                                      ),
-                                      actions: <Widget>[
-                                        ElevatedButton(
-                                          child: Text('CANCEL'),
-                                          onPressed: () {
-                                            Navigator.pop(
-                                                context); // Close the dialog
-                                          },
+                            ]),
+                          if (tracker is TimerTracker)
+                            Row(children: [
+                              if (tracker
+                                  .isRunning()) // If timer is running (i.e. there is an empty occurrence_timer)
+                                IconButton(
+                                  icon: const Icon(Icons.stop, color: Colors.red),
+                                  onPressed: () =>
+                                      _decrementStopOccurrence(tracker),
+                                ),
+                              if (!tracker
+                                  .isRunning()) // If timer NOT running (i.e. there no empty occurrence_timer)
+                                IconButton(
+                                  icon: const Icon(Icons.play_arrow,
+                                      color: Colors.green),
+                                  onPressed: () => _addStartOccurrence(tracker),
+                                ),
+                            ]),
+                          if (tracker is TextTracker)
+                            Row(children: [
+                              IconButton(
+                                icon: const Icon(Icons.text_increase,
+                                    color: Colors.green),
+                                onPressed: () async {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: Text('Enter Information'),
+                                        content: TextField(
+                                          controller: _textFieldController,
+                                          decoration:
+                                              InputDecoration(hintText: ""),
                                         ),
-                                        ElevatedButton(
-                                          child: Text('CONFIRM'),
-                                          onPressed: () {
-                                            String text =
-                                                _textFieldController.text;
-                                            _addStartOccurrence(tracker);
-                                            Navigator.pop(
-                                                context); // Close the dialog
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ]),
-                        if (tracker is MonitorTracker)
-                          Row(children: [
-                            IconButton(
-                              icon: const Icon(Icons.add, color: Colors.green),
-                              onPressed: () async {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: Text('New value:'),
-                                      content: TextField(
-                                        keyboardType: TextInputType.number,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.allow(
-                                              RegExp(r'^\d*[\.,]?\d*')),
+                                        actions: <Widget>[
+                                          ElevatedButton(
+                                            child: Text('CANCEL'),
+                                            onPressed: () {
+                                              Navigator.pop(
+                                                  context); // Close the dialog
+                                            },
+                                          ),
+                                          ElevatedButton(
+                                            child: Text('CONFIRM'),
+                                            onPressed: () {
+                                              String text =
+                                                  _textFieldController.text;
+                                              _addStartOccurrence(tracker);
+                                              Navigator.pop(
+                                                  context); // Close the dialog
+                                            },
+                                          ),
                                         ],
-                                        controller: _valueFieldController,
-                                        decoration:
-                                            InputDecoration(hintText: ""),
-                                      ),
-                                      actions: <Widget>[
-                                        ElevatedButton(
-                                          child: Text('CANCEL'),
-                                          onPressed: () {
-                                            Navigator.pop(
-                                                context); // Close the dialog
-                                          },
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ]),
+                          if (tracker is MonitorTracker)
+                            Row(children: [
+                              IconButton(
+                                icon: const Icon(Icons.add, color: Colors.green),
+                                onPressed: () async {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        title: Text('New value:'),
+                                        content: TextField(
+                                          keyboardType: TextInputType.number,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.allow(
+                                                RegExp(r'^\d*[\.,]?\d*')),
+                                          ],
+                                          controller: _valueFieldController,
+                                          decoration:
+                                              InputDecoration(hintText: ""),
                                         ),
-                                        ElevatedButton(
-                                          child: Text('CONFIRM'),
-                                          onPressed: () {
-                                            String text =
-                                                _valueFieldController.text;
-                                            _addStartOccurrence(tracker);
-                                            Navigator.pop(
-                                                context); // Close the dialog
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ]),
-                      ],
+                                        actions: <Widget>[
+                                          ElevatedButton(
+                                            child: Text('CANCEL'),
+                                            onPressed: () {
+                                              Navigator.pop(
+                                                  context); // Close the dialog
+                                            },
+                                          ),
+                                          ElevatedButton(
+                                            child: Text('CONFIRM'),
+                                            onPressed: () {
+                                              String text =
+                                                  _valueFieldController.text;
+                                              _addStartOccurrence(tracker);
+                                              Navigator.pop(
+                                                  context); // Close the dialog
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ]),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      )
     );
   }
 }
