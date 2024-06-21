@@ -37,21 +37,19 @@ class AppDrawer extends StatelessWidget {
               Navigator.pushNamed(context, '/manageTrackers');
              },
            ),
-           ListTile(
-             title: const Text('Manage overviews'),
-             onTap: () {
-               // Close the drawer
-               Navigator.pop(context);
-               // Navigate to manage overviews screen
-             },
-           ),
+          //  ListTile( // NOT IMPLEMENTED YET
+          //    title: const Text('Manage overviews'),
+          //    onTap: () {
+          //      // Close the drawer
+          //      Navigator.pop(context);
+          //    },
+          //  ),
            ListTile(
              title: const Text('Extra options'),
              onTap: () {
                // Close the drawer
                Navigator.pop(context);
               Navigator.pushNamed(context, '/extraOptions');
-               // Navigate to manage overviews screen
              },
            ),
            ListTile(
@@ -59,7 +57,7 @@ class AppDrawer extends StatelessWidget {
              onTap: () {
                // Close the drawer
                Navigator.pop(context);
-               // Navigate to about screen
+              Navigator.pushNamed(context, '/about');
              },
            ),
         ],
