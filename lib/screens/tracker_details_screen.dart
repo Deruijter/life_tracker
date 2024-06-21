@@ -552,27 +552,6 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
     );
   }
 
-  Widget _buildOccurrencesTable() {
-    if (_occurrences.isEmpty) {
-      return Center(child: Text('No occurrences available'));
-    }
-
-    return Table(
-      //border: TableBorder.all(),
-      columnWidths: {
-        0: widget.trackerDetails?.type == TrackerType.counter
-            ? FlexColumnWidth(100)
-            : IntrinsicColumnWidth(),
-        1: widget.trackerDetails?.type != TrackerType.counter
-            ? FlexColumnWidth()
-            : IntrinsicColumnWidth(),
-        2: IntrinsicColumnWidth()
-      },
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      children: _buildRows(),
-    );
-  }
-
   Widget _buildPeriodicInfoTableCounter() {
     return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -665,6 +644,27 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
     };
   }
 
+  Widget _buildOccurrencesTable() {
+    if (_occurrences.isEmpty) {
+      return Center(child: Text('No occurrences available'));
+    }
+
+    return Table(
+      //border: TableBorder.all(),
+      columnWidths: {
+        0: widget.trackerDetails?.type == TrackerType.counter
+            ? FlexColumnWidth(100)
+            : IntrinsicColumnWidth(),
+        1: widget.trackerDetails?.type != TrackerType.counter
+            ? FlexColumnWidth()
+            : IntrinsicColumnWidth(),
+        2: IntrinsicColumnWidth()
+      },
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      children: _buildRows(),
+    );
+  }
+
   TableRow _buildHeader() {
     List<TableCell> cells = [
       TableCell(
@@ -736,29 +736,38 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
           verticalAlignment: TableCellVerticalAlignment.top,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
-          child: RichText(
-              text: TextSpan(children: [
+              child: RichText(
+                  text: TextSpan(children: [
+                    TextSpan(
+                      text: DateFormat("''yy MMM dd").format(occurrence.datetime) + 
+                        (widget.trackerDetails?.type == TrackerType.text ? "\n\r" : "  "),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(),
+                ),
                 TextSpan(
-                  text: DateFormat("''yy MMM dd  ").format(occurrence.datetime),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(),
-            ),
-            TextSpan(
-              text: DateFormat("HH:mm:ss").format(occurrence.datetime),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
-            )
-          ]))),
+                  text: DateFormat("HH:mm:ss").format(occurrence.datetime),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey,
+                      ),
+                )
+              ]))),
         ),
         if (widget.trackerDetails?.type == TrackerType.timer)
           TableCell(
+            verticalAlignment: TableCellVerticalAlignment.top,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
               child: Center(
-            child: Text(occurrence.getDurationInMinutes().toString()),
+                child: RichText(
+                  text: TextSpan(children: [
+                    TextSpan(
+                      text: occurrence.getDurationInMinutes().toString(),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(),
+                )]),
+                )
           ))),
         if (widget.trackerDetails?.type == TrackerType.text)
           TableCell(
+            verticalAlignment: TableCellVerticalAlignment.top,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
               child: Center(
@@ -766,6 +775,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
           ))),
         if (widget.trackerDetails?.type == TrackerType.monitor)
           TableCell(
+            verticalAlignment: TableCellVerticalAlignment.top,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
               child: Center(
@@ -774,7 +784,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
         TableCell(
           verticalAlignment: TableCellVerticalAlignment.top,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
             child: IconButton(
               icon: Icon(Icons.more_vert),
               onPressed: () {
