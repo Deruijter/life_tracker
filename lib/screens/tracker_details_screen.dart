@@ -411,12 +411,12 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
                   _buildPeriodicInfoTableCounter(),
                 if (widget.trackerDetails?.type == TrackerType.timer)
                   _buildPeriodicInfoTableTimer(),
-                if (widget.trackerDetails?.type == TrackerType.counter ||
-                    widget.trackerDetails?.type == TrackerType.timer)
-                  Divider(height: 32),
-                if (widget.trackerDetails?.type !=
-                    TrackerType
-                        .text) // I know, I should wrap these in one if block
+                if (widget.trackerDetails?.type == TrackerType.text)
+                  _buildPeriodicInfoTableText(),
+                if (widget.trackerDetails?.type == TrackerType.monitor)
+                  _buildPeriodicInfoTableMonitor(),
+                Divider(height: 32),
+                if (widget.trackerDetails?.type != TrackerType.text) // I know, I should wrap these in one if block
                   Text('Past 4 weeks:', textScaleFactor: 1.3),
                 if (widget.trackerDetails?.type != TrackerType.text)
                   Divider(height: 12, thickness: 0.01),
@@ -611,6 +611,34 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
               ]);
         }
       },
+    );
+  }
+  Widget _buildPeriodicInfoTableText() {
+    return Container(
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('Name: ${_tracker?.name}',
+                style: Theme.of(context).textTheme.headline6),
+            SizedBox(height: 8),
+          ]
+      )
+    );
+  }
+
+  Widget _buildPeriodicInfoTableMonitor() {
+    return Container(
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('Name: ${_tracker?.name}',
+                style: Theme.of(context).textTheme.headline6),
+            SizedBox(height: 8),
+            Text('Unit: ${_tracker?.unit}',
+                style: Theme.of(context).textTheme.subtitle1),
+            SizedBox(height: 8),
+          ]
+      )
     );
   }
 
