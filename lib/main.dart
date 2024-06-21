@@ -8,6 +8,7 @@ import 'services/location_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
+import 'providers/theme_provider.dart';
 import 'dart:io' show Platform;
 
 void main() {
@@ -17,7 +18,12 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   }
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ThemeProvider(lightTheme),
+      child: MyApp(),
+    ),
+  );
 
   if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
     windowManager.setSize(Size(1080/2.5, 1920/2.5));
@@ -35,13 +41,11 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => LocationService(),
-      child: MaterialApp(
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
         title: 'Statistics Tracker',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
+        theme: themeProvider.themeData,
         home: const MyHomePage(),
         onGenerateRoute: (RouteSettings settings) {
           switch (settings.name) {
@@ -72,8 +76,8 @@ class _MyAppState extends State<MyApp> {
               // If there is no route defined for settings.name, return a route to a 404 screen or similar
               //return MaterialPageRoute(builder: (context) => UndefinedScreen(name: settings.name));
           }
-        },
-      ),
+        });
+      },
     );
   }
 }

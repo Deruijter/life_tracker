@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../repositories/tracker_repository.dart';
-import '../entities/tracker.dart';
 import '../helpers/ui_helper.dart';
 import '../widgets/app_drawer.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 
 class ExtraOptionsScreen extends StatefulWidget {
   @override
@@ -62,7 +63,7 @@ class _ExtraOptionsScreenState extends State<ExtraOptionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<TrackerType> trackerTypes = TrackerType.values;
+    ThemeProvider themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -110,6 +111,25 @@ class _ExtraOptionsScreenState extends State<ExtraOptionsScreen> {
           ElevatedButton(
             onPressed: () => _importDatabaseFromJSON(context),
             child: const Text('Import Database'),
+          ),
+          const Divider(height: 50),
+          Text("Theme:", ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Light'),
+              Switch(
+                value: themeProvider.themeData.brightness == Brightness.dark,
+                onChanged: (value) {
+                  if (value) {
+                    themeProvider.setTheme(darkTheme);
+                  } else {
+                    themeProvider.setTheme(lightTheme);
+                  }
+                },
+              ),
+              Text('Dark'),
+            ],
           ),
         ],
       ),
