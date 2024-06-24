@@ -5,7 +5,6 @@ import 'screens/create_edit_tracker_screen.dart';
 import 'screens/manage_trackers_screen.dart';
 import 'screens/extra_options_screen.dart';
 import 'screens/about_screen.dart';
-import 'services/location_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';

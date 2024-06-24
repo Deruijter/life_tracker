@@ -480,12 +480,12 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
             curveSmoothness: 0.2,
             preventCurveOverShooting: true,
             isStrokeCapRound: false,
-            color: Theme.of(context).primaryColor,
+            color: Theme.of(context).buttonTheme.colorScheme!.primary,
             barWidth: 2,
             dotData: FlDotData(show: false), // Show the dots on the line
             belowBarData: BarAreaData(
                 show: true,
-                color: Theme.of(context).primaryColor.withOpacity(0.2)), // No fill below the line
+                color: Theme.of(context).buttonTheme.colorScheme!.primary.withOpacity(0.2)), // No fill below the line
           );
 
           // Define the weekend background data line

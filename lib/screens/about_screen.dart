@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_drawer.dart';
 import './overview_screen.dart';
-// import 'package:package_info_plus/package_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'dart:io' show Platform;
 
 
 class AboutScreen extends StatefulWidget {
@@ -20,20 +21,22 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   void initState() {
     super.initState();
-    setState(() async {
-      
-      // PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    _getPackageInfo();
+  }
 
-      // _appName = packageInfo.appName;
-      // _packageName = packageInfo.packageName;
-      // _version = packageInfo.version;
-      // _buildNumber = packageInfo.buildNumber;
+  Future<void> _getPackageInfo() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appName = packageInfo.appName;
+      _packageName = packageInfo.packageName;
+      _version = packageInfo.version;
+      _buildNumber = packageInfo.buildNumber;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-
+    
     return WillPopScope(
         onWillPop: () async {
           Navigator.pushReplacement(
@@ -72,7 +75,11 @@ class _AboutScreenState extends State<AboutScreen> {
                         Padding(
                             padding: EdgeInsets.all(16.0),
                             child: Text(
-                                "App version: $_appName")), // Should automate this
+                                "App version: $_version $_buildNumber")),
+                        Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text(
+                                "Platform: ${Platform.operatingSystem.toString()}")),
                       ],
                     )))));
   }
