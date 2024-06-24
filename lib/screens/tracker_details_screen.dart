@@ -273,7 +273,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
                 onPressed: () async {
                   bool confirmed = await _showDeleteConfirmationDialog();
                   if (confirmed) {
-                    _deleteEntry(occurrence.id);
+                    await _deleteEntry(occurrence.id);
                     _refreshScreen();
                     //overviewScreenKey.currentState?.refresh(); // So the Overview screen is refreshed when using the back button
                     Navigator.of(context).pop(); // Close the original dialog
@@ -286,12 +286,12 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 if (occurrence == null) {
-                  _addManualEntry(
+                  await _addManualEntry(
                       selectedDateTime, textInput, durationInput, numericInput);
                 } else {
-                  _updateManualEntry(occurrence.id, selectedDateTime, textInput,
+                  await _updateManualEntry(occurrence.id, selectedDateTime, textInput,
                       durationInput, numericInput);
                 }
                 //overviewScreenKey.currentState?.refresh();  // So the Overview screen is refreshed when using the back button
@@ -332,7 +332,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
         false; // Return false if the dialog is dismissed without any selection
   }
 
-  void _addManualEntry(
+  Future<void> _addManualEntry(
       DateTime dateTime, String text, int duration, double value) async {
     if (_tracker == null) {
       return;
@@ -355,7 +355,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
     }
   }
 
-  void _updateManualEntry(int occurrenceId, DateTime datetime, String text,
+  Future<void> _updateManualEntry(int occurrenceId, DateTime datetime, String text,
       int duration, double value) async {
     if (_tracker == null) {
       return;
@@ -375,7 +375,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
     }
   }
 
-  void _deleteEntry(int occurrenceId) async {
+  Future<void> _deleteEntry(int occurrenceId) async {
     TrackerService().deleteOccurrence(occurrenceId);
   }
 
