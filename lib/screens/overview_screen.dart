@@ -245,17 +245,12 @@ class _OverviewScreenState extends State<OverviewScreen>
                                   children: [
                                     Text(
                                       tracker.name,
-                                      style: const TextStyle(
-                                        fontSize: 18.0,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: Theme.of(context).textTheme.titleLarge
                                     ),
+                                    SizedBox(height: 4,),
                                     Text(
                                       '${tracker.occurrences} ${tracker.unit}',
-                                      style: TextStyle(
-                                        fontSize: 16.0,
-                                        color: Colors.grey[600],
-                                      ),
+                                      style: Theme.of(context).textTheme.bodyMedium
                                     ),
                                   ],
                                 ),
@@ -269,19 +264,14 @@ class _OverviewScreenState extends State<OverviewScreen>
                                   children: [
                                     Text(
                                       tracker.name,
-                                      style: const TextStyle(
-                                        fontSize: 18.0,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: Theme.of(context).textTheme.titleLarge
                                     ),
+                                    SizedBox(height: 4,),
                                     if (!tracker.isRunning())
                                       Text(
                                         '${tracker.durationFinished.round()} min.',
                                         //'Last start: ${tracker.latestOccurrence} _ ${tracker.endTime}',
-                                        style: TextStyle(
-                                          fontSize: 16.0,
-                                          color: Colors.grey[600],
-                                        ),
+                                        style: Theme.of(context).textTheme.bodyMedium
                                       ),
                                     if (tracker.isRunning())
                                       Text(
@@ -303,17 +293,12 @@ class _OverviewScreenState extends State<OverviewScreen>
                                   children: [
                                     Text(
                                       tracker.name,
-                                      style: const TextStyle(
-                                        fontSize: 18.0,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: Theme.of(context).textTheme.titleLarge
                                     ),
+                                    SizedBox(height: 4,),
                                     Text(
                                       '${tracker.text}',
-                                      style: TextStyle(
-                                        fontSize: 16.0,
-                                        color: Colors.grey[600],
-                                      ),
+                                      style: Theme.of(context).textTheme.bodyMedium
                                     ),
                                   ],
                                 ),
@@ -327,17 +312,12 @@ class _OverviewScreenState extends State<OverviewScreen>
                                   children: [
                                     Text(
                                       tracker.name,
-                                      style: const TextStyle(
-                                        fontSize: 18.0,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: Theme.of(context).textTheme.titleLarge
                                     ),
+                                    SizedBox(height: 4,),
                                     Text(
                                       '${tracker.value} ${tracker.unit}',
-                                      style: TextStyle(
-                                        fontSize: 16.0,
-                                        color: Colors.grey[600],
-                                      ),
+                                      style: Theme.of(context).textTheme.bodyMedium
                                     ),
                                   ],
                                 ),

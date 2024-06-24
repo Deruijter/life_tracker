@@ -12,16 +12,21 @@ import 'package:window_manager/window_manager.dart';
 import 'providers/theme_provider.dart';
 import 'dart:io' show Platform;
 
-void main() {
+void main() async {
   if (Platform.isLinux) {
     // Initialize FFI loader for Linux development
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
 
+  // Pre-initialize the app so we can set and load the correct theme
+  WidgetsFlutterBinding.ensureInitialized();
+  ThemeProvider themeProvider = ThemeProvider(lightTheme);
+  await themeProvider.loadTheme(); // Load the saved theme
+  
   runApp(
     ChangeNotifierProvider(
-      create: (context) => ThemeProvider(lightTheme),
+      create: (_) => themeProvider,
       child: MyApp(),
     ),
   );

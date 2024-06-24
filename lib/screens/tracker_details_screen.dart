@@ -514,12 +514,12 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
                   curveSmoothness: 0.2,
                   preventCurveOverShooting: true,
                   isStrokeCapRound: false,
-                  colors: [Colors.blue],
+                  colors: [Theme.of(context).primaryColor],
                   barWidth: 2,
                   dotData: FlDotData(show: false), // Show the dots on the line
                   belowBarData: BarAreaData(
                       show: true,
-                      colors: [Colors.blue.shade50]), // No fill below the line
+                      colors: [Theme.of(context).primaryColor.withOpacity(0.2)]), // No fill below the line
                 ),
                 LineChartBarData(
                   // A fake bar chart rod data that spans the entire Y-axis height
