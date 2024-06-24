@@ -26,6 +26,7 @@ class TrackerDetailsScreen extends StatefulWidget {
 class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
   List<Occurrence> _occurrences = [];
   Tracker? _tracker;
+  Map<int, String> _mondayLabels = new Map<int, String>();
 
   @override
   void initState() {
@@ -166,13 +167,15 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
     DateTime filterDateEnd = DateTime.now(); // might modify at some point
     int numberOfDays = filterDateEnd.difference(filterDate).inDays + 1;
 
-    for (int i = 0; i < numberOfDays - 1; i++) {
+    for (int i = 0; i < numberOfDays; i++) {
       DateTime date = filterDate.add(Duration(days: i + 1));
       if (date.weekday == DateTime.monday) {
         labels[i] = DateFormat('MMM d').format(date);
+      } else {
+        labels[i] = "";
       }
     }
-
+    _mondayLabels = labels;
     return labels;
   }
 
@@ -450,6 +453,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
   }
 
   Widget _buildChart(trackerId) {
+    getMondayLabels();
     return Container(
       height: 200,
       child: FutureBuilder<List<FlSpot>>(
@@ -469,6 +473,35 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
               .reduce(max); // Use 'max' from 'dart:math'
           maxYValue = maxYValue + 1;
 
+          // Define the main data line
+          LineChartBarData mainData = LineChartBarData(
+            spots: snapshot.data!,
+            isCurved: true, // Optional, if you want a curved line
+            curveSmoothness: 0.2,
+            preventCurveOverShooting: true,
+            isStrokeCapRound: false,
+            color: Theme.of(context).primaryColor,
+            barWidth: 2,
+            dotData: FlDotData(show: false), // Show the dots on the line
+            belowBarData: BarAreaData(
+                show: true,
+                color: Theme.of(context).primaryColor.withOpacity(0.2)), // No fill below the line
+          );
+
+          // Define the weekend background data line
+          LineChartBarData weekendBackgroundData = LineChartBarData(
+            spots: getLineChartDataWeekend(maxYValue),
+            isCurved: false,
+            color: Colors.grey.withOpacity(0.9), // Dark color for the "night" time
+            barWidth: double.infinity, // Make the bar cover the entire chart width
+            isStrokeCapRound: true,
+            dotData: FlDotData(show: false), // Do not show dots
+            belowBarData: BarAreaData(
+              show: true,
+              color: Colors.grey.withOpacity(0.2),
+            ),
+          );
+
           // Once the data is available, build the BarChart
           return LineChart(
             LineChartData(
@@ -476,91 +509,44 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
               minY: 0,
               minX: 1,
               maxX: 30,
-              // A grid behind the graph
               gridData: FlGridData(show: false),
-              // Enable the border
               borderData: FlBorderData(show: true),
-              // Setup your titles here...
               titlesData: FlTitlesData(
-                bottomTitles: SideTitles(
-                  showTitles: true,
-                  getTitles: (value) {
-                    Map<int, String> mondayLabels = getMondayLabels();
-                    return mondayLabels[value.toInt()] ?? '';
-                  },
-                  getTextStyles: (context, value) => const TextStyle(
-                    color: Color(0xff68737d),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                  margin: 10, // Space between the axis and titles
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: false
+                  )
                 ),
-                // Left titles (y-axis)
-                leftTitles: SideTitles(
-                  showTitles: true,
-                  interval: (maxYValue / 6).round().toDouble() != 0
-                      ? (maxYValue / 6).round().toDouble()
-                      : 1,
-                  reservedSize:
-                      maxYValue >= 100 ? 20 : (maxYValue >= 10 ? 12 : 4),
-                  margin: maxYValue >= 100 ? 12 : (maxYValue >= 10 ? 12 : 10),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: false,
+                  )
+                ),
+                leftTitles: AxisTitles( // 
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: _leftTitleWidgets
+                  )
+                ),
+                bottomTitles: AxisTitles( // 
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 1,
+                    reservedSize: 30,
+                    getTitlesWidget: _bottomTitleWidgets
+                  )
                 ),
               ),
-              // The line bars data
               lineBarsData: [
-                LineChartBarData(
-                  spots: snapshot.data!,
-                  isCurved: true, // Optional, if you want a curved line
-                  curveSmoothness: 0.2,
-                  preventCurveOverShooting: true,
-                  isStrokeCapRound: false,
-                  colors: [Theme.of(context).primaryColor],
-                  barWidth: 2,
-                  dotData: FlDotData(show: false), // Show the dots on the line
-                  belowBarData: BarAreaData(
-                      show: true,
-                      colors: [Theme.of(context).primaryColor.withOpacity(0.2)]), // No fill below the line
-                ),
-                LineChartBarData(
-                  // A fake bar chart rod data that spans the entire Y-axis height
-                  // to act as the background for "night" times
-                  spots: getLineChartDataWeekend(maxYValue),
-                  isCurved: false,
-                  colors: [
-                    Colors.grey.withOpacity(0.9)
-                  ], // Dark color for the "night" time
-                  barWidth: double
-                      .infinity, // Make the bar cover the entire chart width
-                  isStrokeCapRound: true,
-                  dotData: FlDotData(show: false), // Do not show dots
-                  belowBarData: BarAreaData(
-                    show: true,
-                    colors: [Colors.grey.withOpacity(0.2)],
-                  ),
-                ),
-              ], // Define extra lines
-              // extraLinesData: ExtraLinesData(
-              //   // Add a vertical line
-              //   verticalLines: [
-              //     VerticalLine(
-              //       // Assuming your x-axis is hours of the day, set the x value to the current hour
-              //       x: DateTime.now().hour.toDouble()+24,
-              //       // Style the line
-              //       color: Colors.red,
-              //       strokeWidth: 2,
-              //       // Optionally, add a dash pattern for the line
-              //       dashArray: [5, 5],
-              //     ),
-              //     VerticalLine(
-              //       // Assuming your x-axis is hours of the day, set the x value to the current hour
-              //       x: 24,
-              //       // Style the line
-              //       color: Colors.black,
-              //       strokeWidth: 2,
-              //     ),
-              //   ],
-              //   // You can also define horizontalLines if needed
-              // ),
+                weekendBackgroundData,
+                mainData,            
+              ],
+              // Disable line touch tool tips. They include the weekend "background" which looks weird.
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData( getTooltipItems: (touchedSpots) { return touchedSpots.map((touchedSpot) { return null; }).toList(); }),
+                enabled: false,
+                handleBuiltInTouches: false,
+              ),
             ),
           );
         },
@@ -568,15 +554,31 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
     );
   }
 
+  Widget _bottomTitleWidgets(double value, TitleMeta meta) {
+    String text = ' ';
+    if(_mondayLabels[value] != null && _mondayLabels[value] != ""){
+      text = _mondayLabels[value]!;
+    }
+    return Padding(padding: EdgeInsets.fromLTRB(0, 6, 0, 0), child: Text(text, style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center));
+  }
+
+  Widget _leftTitleWidgets(double value, TitleMeta meta) {
+    String text = value.round().toString(); 
+    if(value == 0){
+      //text = ' ';
+    }
+    return Text(text, style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center);
+  }
+
   Widget _buildPeriodicInfoTableCounter() {
     return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text('Name: ${_tracker?.name}',
-              style: Theme.of(context).textTheme.headline6),
+              style: Theme.of(context).textTheme.headlineLarge),
           SizedBox(height: 8),
           Text('Unit: ${_tracker?.unit}',
-              style: Theme.of(context).textTheme.subtitle1),
+              style: Theme.of(context).textTheme.headlineSmall),
           SizedBox(height: 8),
           Text('Occurrences Today: ${widget.trackerDetails?.occurrencesToday}'),
           Text(
@@ -607,10 +609,10 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text('Name: ${_tracker?.name}',
-                    style: Theme.of(context).textTheme.headline6),
+                    style: Theme.of(context).textTheme.headlineLarge),
                 SizedBox(height: 8),
                 Text('Unit: time',
-                    style: Theme.of(context).textTheme.subtitle1),
+                    style: Theme.of(context).textTheme.headlineSmall),
                 SizedBox(height: 8),
                 Text(
                     'Today: ${data['durationToday'] <= 60 ? data['durationToday'] : (data['durationToday'] / 60).toStringAsFixed(1)} ${data['durationToday'] <= 60 ? 'minutes' : 'hours'}'),
@@ -636,7 +638,7 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
           Text('Name: ${_tracker?.name}',
-              style: Theme.of(context).textTheme.headline6),
+              style: Theme.of(context).textTheme.headlineLarge),
           SizedBox(height: 8),
         ]));
   }
@@ -647,10 +649,10 @@ class _TrackerDetailsScreenState extends State<TrackerDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
           Text('Name: ${_tracker?.name}',
-              style: Theme.of(context).textTheme.headline6),
+              style: Theme.of(context).textTheme.headlineLarge),
           SizedBox(height: 8),
           Text('Unit: ${_tracker?.unit}',
-              style: Theme.of(context).textTheme.subtitle1),
+              style: Theme.of(context).textTheme.headlineSmall),
           SizedBox(height: 8),
         ]));
   }

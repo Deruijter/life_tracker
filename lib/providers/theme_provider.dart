@@ -25,6 +25,7 @@ class ThemeProvider with ChangeNotifier {
 
 final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,
+  primaryColor: Colors.blue,
   primarySwatch: Colors.blue,
   // Define other colors and properties as needed
 );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_drawer.dart';
 import './overview_screen.dart';
+// import 'package:package_info_plus/package_info_plus.dart';
+
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -10,13 +12,28 @@ class AboutScreen extends StatefulWidget {
 }
 
 class _AboutScreenState extends State<AboutScreen> {
+  String _appName = "";
+  String _packageName = "";
+  String _version = "";
+  String _buildNumber = "";
+
   @override
   void initState() {
     super.initState();
+    setState(() async {
+      
+      // PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+      // _appName = packageInfo.appName;
+      // _packageName = packageInfo.packageName;
+      // _version = packageInfo.version;
+      // _buildNumber = packageInfo.buildNumber;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+
     return WillPopScope(
         onWillPop: () async {
           Navigator.pushReplacement(
@@ -43,7 +60,7 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
             ),
             drawer: const AppDrawer(),
-            body: const SingleChildScrollView(
+            body: SingleChildScrollView(
                 child: Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Column(
@@ -55,7 +72,7 @@ class _AboutScreenState extends State<AboutScreen> {
                         Padding(
                             padding: EdgeInsets.all(16.0),
                             child: Text(
-                                "App version: 2024-06-21 - 17:52")), // Should automate this
+                                "App version: $_appName")), // Should automate this
                       ],
                     )))));
   }

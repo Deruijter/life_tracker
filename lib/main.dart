@@ -22,7 +22,7 @@ void main() async {
   // Pre-initialize the app so we can set and load the correct theme
   WidgetsFlutterBinding.ensureInitialized();
   ThemeProvider themeProvider = ThemeProvider(lightTheme);
-  await themeProvider.loadTheme(); // Load the saved theme
+  //await themeProvider.loadTheme(); // Load the saved theme
   
   runApp(
     ChangeNotifierProvider(
